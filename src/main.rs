@@ -1,22 +1,42 @@
 use bevy::prelude::*;
 
 fn main() {
-    App::build()
+    App::new()
         .add_plugins(DefaultPlugins)
-        .add_startup_system(setup.system())
+        .add_systems(Startup, setup)
         .run();
 }
 
-fn setup(mut commands: Commands) {
-    // Add a camera
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    // Spawn 3D camera
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 5.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..Default::default()
+    });
 
-    // Add a simple 2D entity
-    commands.spawn_bundle(SpriteBundle {
-        sprite: Sprite {
-            color: Color::rgb(0.5, 0.5, 1.0),
+    // Add light source
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 1500.0,
+            range: 100.0,
             ..Default::default()
         },
+        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        ..Default::default()
+    });
+
+    // Add a cube
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cuboid::default()),
+        material: materials.add(StandardMaterial {
+            base_color: Color::srgb(0.8, 0.0, 0.0),
+            ..Default::default()
+        }),
+        transform: Transform::from_xyz(0.0, 0.5, 0.0),
         ..Default::default()
     });
 }
