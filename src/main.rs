@@ -114,7 +114,7 @@ fn setup(
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
 
-    // Iterate through voxels in the chunck and spawn them
+    // Iterate through voxels in the chunk and spawn them
     if let Some(chunk) = chunk_map.0.get(&chunk_pos) {
         for voxel in &chunk.voxels {
             if voxel.is_solid {
