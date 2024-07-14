@@ -83,11 +83,11 @@ fn setup(
     // Add light source
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 1500.0,
+            intensity: 2000.0,
             shadows_enabled: true,
             ..Default::default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        transform: Transform::from_xyz(4.0, 13.0, 4.0),
         ..Default::default()
     });
 
@@ -108,15 +108,38 @@ fn setup(
 
     // Add a cube
     commands.spawn(PbrBundle {
-        mesh: mesh_handle.clone(),
+        mesh: mesh_handle,
         material: materials.add(StandardMaterial {
             base_color: Color::srgb(0.8, 0.0, 0.0),
             cull_mode: None,
             ..Default::default()
         }),
-        transform: Transform::from_xyz(0.0, 0.5, 0.0),
+        transform: Transform::from_xyz(20.0, 0.5, 0.0),
         ..Default::default()
     });
+
+    // Iterate through voxels in the chunck and spawn them
+    if let Some(chunk) = chunk_map.0.get(&chunk_pos) {
+        for voxel in &chunk.voxels {
+            if voxel.is_solid {
+                // Calculate voxel position based on chunck_pos and voxel id
+                let x = voxel.id % CHUNK_SIZE;
+                let y = (voxel.id / CHUNK_SIZE) % CHUNK_SIZE;
+                let z = voxel.id / (CHUNK_SIZE * CHUNK_SIZE);
+
+                // Spawn a voxel cube
+                commands.spawn(PbrBundle {
+                    mesh: meshes.add(Cuboid::from_size(Vec3::new(1.0, 1.0, 1.0))),
+                    material: materials.add(StandardMaterial {
+                        base_color: Color::WHITE,
+                        ..Default::default()
+                    }),
+                    transform: Transform::from_translation(Vec3::new(x as f32, y as f32, z as f32)),
+                    ..Default::default()
+                });
+            }
+        }
+    }
 }
 
 fn generate_mesh(
@@ -138,12 +161,18 @@ fn generate_mesh(
 
                 let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
 
-                vertices.extend(generate_cube_vertices(voxel_pos));
+                let cube_vertices = generate_cube_vertices(voxel_pos);
+                vertices.extend(&cube_vertices);
                 indices.extend(generate_cube_indices(index_offset));
-                normals.extend([[1.0, 0.0, 0.0]; 6]);
-                colors.extend([[0.0, 1.0, 0.0, 1.0]; 8]);
 
-                index_offset += 8;
+                let cube_normals = generate_cube_normals();
+                for normal in cube_normals.iter() {
+                    normals.extend([*normal; 4]);
+                }
+                // normals.extend(generate_cube_normals());
+                colors.extend([[0.0, 2.0, 0.0, 1.0]; 24]);
+
+                index_offset += 24;
             }
         }
     }
@@ -158,26 +187,59 @@ fn generate_cube_vertices(pos: Vec3) -> Vec<[f32; 3]> {
 
     vec![
         [x + 0.0, y + 1.0, z + 1.0], // 0
-        [x + 0.0, y + 1.0, z + 0.0], // 1
+        [x + 0.0, y + 1.0, z + 0.0], // 1 // Top face
         [x + 1.0, y + 1.0, z + 0.0], // 2
         [x + 1.0, y + 1.0, z + 1.0], // 3
         [x + 1.0, y + 0.0, z + 1.0], // 4
-        [x + 0.0, y + 0.0, z + 1.0], // 5
+        [x + 0.0, y + 0.0, z + 1.0], // 5 // Bottom face
         [x + 0.0, y + 0.0, z + 0.0], // 6
         [x + 1.0, y + 0.0, z + 0.0], // 7
+        [x + 0.0, y + 0.0, z + 1.0], // 8
+        [x + 0.0, y + 1.0, z + 1.0], // 9 // Left face
+        [x + 0.0, y + 1.0, z + 0.0], // 10
+        [x + 0.0, y + 0.0, z + 0.0], // 11
+        [x + 1.0, y + 0.0, z + 1.0], // 12
+        [x + 1.0, y + 1.0, z + 1.0], // 13 // Right face
+        [x + 1.0, y + 1.0, z + 0.0], // 14
+        [x + 1.0, y + 0.0, z + 0.0], // 15
+        [x + 0.0, y + 0.0, z + 1.0], // 16
+        [x + 0.0, y + 1.0, z + 1.0], // 17 // Front face
+        [x + 1.0, y + 1.0, z + 1.0], // 18
+        [x + 1.0, y + 0.0, z + 1.0], // 19
+        [x + 0.0, y + 0.0, z + 0.0], // 20
+        [x + 0.0, y + 1.0, z + 0.0], // 21 // Back face
+        [x + 1.0, y + 1.0, z + 0.0], // 22
+        [x + 1.0, y + 0.0, z + 0.0], // 23
     ]
 }
 
 fn generate_cube_indices(index: u32) -> Vec<u32> {
     vec![
         0, 1, 2, 2, 3, 0, // Top face
-        5, 6, 7, 7, 4, 5, // Bottom face
-        6, 1, 0, 0, 5, 6, // Left face
-        4, 3, 2, 2, 7, 4, // Right face
-        5, 0, 3, 3, 4, 5, // Front face
-        6, 1, 2, 2, 7, 6, // Back face
+        4, 5, 6, 6, 7, 4, // Bottom face
+        8, 9, 10, 10, 11, 8, // Left face
+        12, 13, 14, 14, 15, 12, // Right face
+        16, 17, 18, 18, 19, 16, // Front face
+        20, 21, 22, 22, 23, 20, // Back face
     ]
     .into_iter()
     .map(|i| i + index)
     .collect()
+}
+
+fn generate_cube_normals() -> Vec<[f32; 3]> {
+    vec![
+        // Top face normals
+        [0.0, 1.0, 0.0],
+        // Bottom face normals
+        [0.0, -1.0, 0.0],
+        // Left face normals
+        [-1.0, 0.0, 0.0],
+        // Right face normals
+        [1.0, 0.0, 0.0],
+        // Front face normals
+        [0.0, 0.0, 1.0],
+        // Back face normals
+        [0.0, 0.0, -1.0],
+    ]
 }
