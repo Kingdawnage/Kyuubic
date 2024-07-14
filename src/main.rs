@@ -91,21 +91,10 @@ fn setup(
         ..Default::default()
     });
 
-    // // Add a cube
-    // commands.spawn(PbrBundle {
-    //     mesh: meshes.add(Cuboid::from_size(Vec3::new(5.0, 5.0, 5.0))),
-    //     material: materials.add(StandardMaterial {
-    //         base_color: Color::srgb(0.8, 0.0, 0.0),
-    //         ..Default::default()
-    //     }),
-    //     transform: Transform::from_xyz(0.0, 0.5, 0.0),
-    //     ..Default::default()
-    // });
-
     // Generate and store chunck of voxels
     let chunk_pos = IVec3::new(0, 0, 0);
     chunk_map.generate_chunk(chunk_pos);
-    let (vertices, indices) = generate_mesh(&chunk_map, chunk_pos);
+    let (vertices, indices, normals, colors) = generate_mesh(&chunk_map, chunk_pos);
 
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
@@ -113,34 +102,31 @@ fn setup(
     );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    let mesh_handle = meshes.add(mesh);
 
-    // Iterate through voxels in the chunk and spawn them
-    if let Some(chunk) = chunk_map.0.get(&chunk_pos) {
-        for voxel in &chunk.voxels {
-            if voxel.is_solid {
-                // Calculate voxel position based on chunck_pos and voxel id
-                let x = voxel.id % CHUNK_SIZE;
-                let y = (voxel.id / CHUNK_SIZE) % CHUNK_SIZE;
-                let z = voxel.id / (CHUNK_SIZE * CHUNK_SIZE);
-
-                // Spawn a voxel cube
-                commands.spawn(PbrBundle {
-                    mesh: meshes.add(Cuboid::from_size(Vec3::new(1.0, 1.0, 1.0))),
-                    material: materials.add(StandardMaterial {
-                        base_color: Color::WHITE,
-                        ..Default::default()
-                    }),
-                    transform: Transform::from_translation(Vec3::new(x as f32, y as f32, z as f32)),
-                    ..Default::default()
-                });
-            }
-        }
-    }
+    // Add a cube
+    commands.spawn(PbrBundle {
+        mesh: mesh_handle.clone(),
+        material: materials.add(StandardMaterial {
+            base_color: Color::srgb(0.8, 0.0, 0.0),
+            cull_mode: None,
+            ..Default::default()
+        }),
+        transform: Transform::from_xyz(0.0, 0.5, 0.0),
+        ..Default::default()
+    });
 }
 
-fn generate_mesh(chunk_map: &ChunkMap, chunk_pos: IVec3) -> (Vec<[f32; 3]>, Vec<u32>) {
+fn generate_mesh(
+    chunk_map: &ChunkMap,
+    chunk_pos: IVec3,
+) -> (Vec<[f32; 3]>, Vec<u32>, Vec<[f32; 3]>, Vec<[f32; 4]>) {
     let mut vertices: Vec<[f32; 3]> = Vec::new();
     let mut indices = Vec::new();
+    let mut normals = Vec::new();
+    let mut colors = Vec::new();
     let mut index_offset = 0;
 
     if let Some(chunk) = chunk_map.0.get(&chunk_pos) {
@@ -154,13 +140,15 @@ fn generate_mesh(chunk_map: &ChunkMap, chunk_pos: IVec3) -> (Vec<[f32; 3]>, Vec<
 
                 vertices.extend(generate_cube_vertices(voxel_pos));
                 indices.extend(generate_cube_indices(index_offset));
+                normals.extend([[1.0, 0.0, 0.0]; 6]);
+                colors.extend([[0.0, 1.0, 0.0, 1.0]; 8]);
 
                 index_offset += 8;
             }
         }
     }
 
-    return (vertices, indices);
+    return (vertices, indices, normals, colors);
 }
 
 fn generate_cube_vertices(pos: Vec3) -> Vec<[f32; 3]> {
@@ -169,48 +157,25 @@ fn generate_cube_vertices(pos: Vec3) -> Vec<[f32; 3]> {
     let z = pos.z;
 
     vec![
-        // Back face
-        [x + 0.0, y + 0.0, z + 0.0],
-        [x + 1.0, y + 0.0, z + 0.0],
-        [x + 1.0, y + 1.0, z + 0.0],
-        [x + 0.0, y + 1.0, z + 0.0],
-        // Front face
-        [x + 0.0, y + 0.0, z + 1.0],
-        [x + 1.0, y + 0.0, z + 1.0],
-        [x + 1.0, y + 1.0, z + 1.0],
-        [x + 0.0, y + 1.0, z + 1.0],
-        // Top face
-        [x + 0.0, y + 1.0, z + 1.0],
-        [x + 1.0, y + 1.0, z + 1.0],
-        [x + 1.0, y + 1.0, z + 0.0],
-        [x + 0.0, y + 1.0, z + 0.0],
-        // Bottom face
-        [x + 0.0, y + 0.0, z + 1.0],
-        [x + 1.0, y + 0.0, z + 1.0],
-        [x + 1.0, y + 0.0, z + 0.0],
-        [x + 0.0, y + 0.0, z + 0.0],
-        // Left face
-        [x + 0.0, y + 0.0, z + 0.0],
-        [x + 0.0, y + 0.0, z + 1.0],
-        [x + 0.0, y + 1.0, z + 1.0],
-        [x + 0.0, y + 1.0, z + 0.0],
-        // Right face
-        [x + 1.0, y + 0.0, z + 1.0],
-        [x + 1.0, y + 0.0, z + 0.0],
-        [x + 1.0, y + 1.0, z + 0.0],
-        [x + 1.0, y + 1.0, z + 1.0],
+        [x + 0.0, y + 1.0, z + 1.0], // 0
+        [x + 0.0, y + 1.0, z + 0.0], // 1
+        [x + 1.0, y + 1.0, z + 0.0], // 2
+        [x + 1.0, y + 1.0, z + 1.0], // 3
+        [x + 1.0, y + 0.0, z + 1.0], // 4
+        [x + 0.0, y + 0.0, z + 1.0], // 5
+        [x + 0.0, y + 0.0, z + 0.0], // 6
+        [x + 1.0, y + 0.0, z + 0.0], // 7
     ]
 }
 
 fn generate_cube_indices(index: u32) -> Vec<u32> {
     vec![
-        // Back face
-        0, 1, 3, 0, 3, 2, // Front face
-        4, 5, 7, 4, 7, 6, // Top face
-        6, 7, 3, 6, 3, 2, // Bottom face
-        4, 5, 1, 4, 1, 0, // Left face
-        0, 4, 6, 0, 6, 2, // Right face
-        5, 1, 3, 5, 3, 7,
+        0, 1, 2, 2, 3, 0, // Top face
+        5, 6, 7, 7, 4, 5, // Bottom face
+        6, 1, 0, 0, 5, 6, // Left face
+        4, 3, 2, 2, 7, 4, // Right face
+        5, 0, 3, 3, 4, 5, // Front face
+        6, 1, 2, 2, 7, 6, // Back face
     ]
     .into_iter()
     .map(|i| i + index)
