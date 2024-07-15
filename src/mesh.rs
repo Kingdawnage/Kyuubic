@@ -4,7 +4,7 @@ use bracket_noise::prelude::*;
 
 use std::collections::HashMap;
 
-pub const CHUNK_SIZE: i32 = 8;
+pub const CHUNK_SIZE: i32 = 32;
 
 #[derive(Debug)]
 pub struct Voxel {
@@ -32,10 +32,15 @@ impl ChunkMap {
         noise.set_fractal_lacunarity(2.0);
 
         for x in 0..CHUNK_SIZE {
-            for y in 0..CHUNK_SIZE {
-                for z in 0..CHUNK_SIZE {
-                    let noise_value = noise.get_noise3d(x as f32, y as f32, z as f32);
-                    let is_solid = noise_value > 0.0;
+            for z in 0..CHUNK_SIZE {
+                let global_x = chunk_pos.x * CHUNK_SIZE + x;
+                let global_z = chunk_pos.z * CHUNK_SIZE + z;
+                let height =
+                    (noise.get_noise(global_x as f32, global_z as f32) * 16.0 + 16.0) as i32;
+
+                for y in 0..CHUNK_SIZE {
+                    let global_y = chunk_pos.y * CHUNK_SIZE + y;
+                    let is_solid = global_y <= height;
                     let voxel = Voxel {
                         id: x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z,
                         is_solid,

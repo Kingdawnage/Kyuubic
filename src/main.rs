@@ -75,7 +75,7 @@ fn setup(
     // });
 
     // Generate and store a world of chunks
-    let world_size = IVec3::new(4, 4, 4);
+    let world_size = IVec3::new(8, 4, 8);
     chunk_map.generate_terrain(world_size);
 
     // Create entities for each chunk

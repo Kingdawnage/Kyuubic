@@ -4,6 +4,7 @@ use bevy::{input::mouse::MouseMotion, prelude::*};
 #[derive(Component, Resource)]
 pub struct NewFlyCamera {
     sensitivity: f32,
+    speed: f32,
     position: Vec3,
     front: Vec3,
     up: Vec3,
@@ -19,7 +20,8 @@ impl Default for NewFlyCamera {
     fn default() -> Self {
         NewFlyCamera {
             transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-            sensitivity: 0.1,
+            sensitivity: 0.2,
+            speed: 0.5,
             position: Vec3::new(0.0, 0.0, 10.0),
             front: Vec3::new(0.0, 0.0, -1.0),
             up: Vec3::new(0.0, 1.0, 0.0),
@@ -42,22 +44,22 @@ pub fn process_keyboard(
         let delta_time = time.delta_seconds();
 
         if keys.pressed(KeyCode::KeyW) {
-            direction += camera.front * camera.sensitivity;
+            direction += camera.front * camera.speed;
         }
         if keys.pressed(KeyCode::KeyS) {
-            direction -= camera.front * camera.sensitivity;
+            direction -= camera.front * camera.speed;
         }
         if keys.pressed(KeyCode::KeyA) {
-            direction -= camera.right * camera.sensitivity;
+            direction -= camera.right * camera.speed;
         }
         if keys.pressed(KeyCode::KeyD) {
-            direction += camera.right * camera.sensitivity;
+            direction += camera.right * camera.speed;
         }
         if keys.pressed(KeyCode::Space) {
-            direction += camera.up * camera.sensitivity;
+            direction += camera.up * camera.speed;
         }
         if keys.pressed(KeyCode::ShiftLeft) {
-            direction -= camera.up * camera.sensitivity;
+            direction -= camera.up * camera.speed;
         }
 
         if direction != Vec3::ZERO {
