@@ -2,7 +2,7 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
 #[derive(Component, Resource)]
-pub struct NewFlyCamera {
+pub struct FlyCamera {
     sensitivity: f32,
     speed: f32,
     position: Vec3,
@@ -16,14 +16,14 @@ pub struct NewFlyCamera {
     enabled: bool,
 }
 
-impl Default for NewFlyCamera {
+impl Default for FlyCamera {
     fn default() -> Self {
-        NewFlyCamera {
+        FlyCamera {
             transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
             sensitivity: 0.2,
             speed: 0.5,
-            position: Vec3::new(0.0, 0.0, 10.0),
-            front: Vec3::new(0.0, 0.0, -1.0),
+            position: Vec3::new(3.0, 10.0, 10.0),
+            front: Vec3::new(-0.3, -1.0, -1.0).normalize(),
             up: Vec3::new(0.0, 1.0, 0.0),
             right: Vec3::new(1.0, 0.0, 0.0),
             worldup: Vec3::new(0.0, 1.0, 0.0),
@@ -35,7 +35,7 @@ impl Default for NewFlyCamera {
 }
 
 pub fn process_keyboard(
-    mut query: Query<&mut NewFlyCamera>,
+    mut query: Query<&mut FlyCamera>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
@@ -69,10 +69,7 @@ pub fn process_keyboard(
     }
 }
 
-pub fn process_mouse(
-    mut query: Query<&mut NewFlyCamera>,
-    mut mouse_motion: EventReader<MouseMotion>,
-) {
+pub fn process_mouse(mut query: Query<&mut FlyCamera>, mut mouse_motion: EventReader<MouseMotion>) {
     for mut camera in query.iter_mut() {
         for motion in mouse_motion.read() {
             camera.yaw += motion.delta.x * camera.sensitivity;
@@ -88,7 +85,7 @@ pub fn process_mouse(
     }
 }
 
-fn update_camera_vectors(camera: &mut NewFlyCamera) {
+fn update_camera_vectors(camera: &mut FlyCamera) {
     let mut front: Vec3 = Vec3::new(0.0, 0.0, 0.0);
     front.x = camera.yaw.to_radians().cos() * camera.pitch.to_radians().cos();
     front.y = camera.pitch.to_radians().sin();
@@ -98,7 +95,7 @@ fn update_camera_vectors(camera: &mut NewFlyCamera) {
     camera.up = camera.right.cross(camera.front).normalize();
 }
 
-pub fn update_camera(mut query: Query<(&NewFlyCamera, &mut Transform), With<Camera3d>>) {
+pub fn update_camera(mut query: Query<(&FlyCamera, &mut Transform), With<Camera3d>>) {
     for (camera, mut transform) in query.iter_mut() {
         transform.translation = camera.position;
         transform.look_to(camera.front, camera.up);

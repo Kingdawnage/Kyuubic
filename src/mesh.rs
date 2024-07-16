@@ -24,12 +24,12 @@ impl ChunkMap {
     pub fn generate_chunk(&mut self, chunk_pos: IVec3) -> Chunk {
         let mut voxels: Vec<Voxel> = Vec::new();
         let mut noise: FastNoise = FastNoise::seeded(42);
-        noise.set_noise_type(NoiseType::PerlinFractal);
-        noise.set_frequency(0.1);
-        noise.set_fractal_type(FractalType::FBM);
-        noise.set_fractal_octaves(4);
-        noise.set_fractal_gain(0.5);
-        noise.set_fractal_lacunarity(2.0);
+        noise.set_noise_type(NoiseType::Perlin);
+        noise.set_frequency(0.5);
+        // noise.set_fractal_type(FractalType::FBM);
+        // noise.set_fractal_octaves(4);
+        // noise.set_fractal_gain(0.5);
+        // noise.set_fractal_lacunarity(2.0);
 
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
@@ -108,7 +108,7 @@ pub fn generate_mesh(
                     normals.extend([*normal; 4]);
                 }
                 // normals.extend(generate_cube_normals());
-                colors.extend([[0.0, 0.0, 1.0, 1.0]; 24]);
+                colors.extend([[0.0, 1.0, 0.0, 1.0]; 24]);
 
                 index_offset += 24;
             }

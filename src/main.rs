@@ -14,7 +14,7 @@ mod mesh;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .insert_resource(camera::NewFlyCamera::default())
+        .insert_resource(camera::FlyCamera::default())
         .add_systems(Startup, setup)
         .insert_resource(mesh::ChunkMap(HashMap::new()))
         .add_systems(Update, camera::process_keyboard)
@@ -32,10 +32,10 @@ fn setup(
     // Spawn 3D camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 3.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(3.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..Default::default()
         },
-        camera::NewFlyCamera::default(),
+        camera::FlyCamera::default(),
     ));
 
     // Add light source
@@ -75,7 +75,7 @@ fn setup(
     // });
 
     // Generate and store a world of chunks
-    let world_size = IVec3::new(8, 4, 8);
+    let world_size = IVec3::new(4, 4, 4);
     chunk_map.generate_terrain(world_size);
 
     // Create entities for each chunk
@@ -95,6 +95,7 @@ fn setup(
         commands.spawn(PbrBundle {
             mesh: mesh_handle,
             material: materials.add(StandardMaterial {
+                base_color: Color::srgb(0.8, 0.0, 0.0),
                 cull_mode: None,
                 ..Default::default()
             }),
