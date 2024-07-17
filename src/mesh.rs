@@ -4,7 +4,7 @@ use bracket_noise::prelude::*;
 
 use std::collections::HashMap;
 
-pub const CHUNK_SIZE: i32 = 32;
+pub const CHUNK_SIZE: i32 = 8;
 
 #[derive(Debug)]
 pub struct Voxel {
@@ -21,11 +21,18 @@ pub struct Chunk {
 pub struct ChunkMap(pub HashMap<IVec3, Chunk>);
 
 impl ChunkMap {
+    fn calculate_seed(&self, chunk_pos: &IVec3) -> u64 {
+        (chunk_pos.x as u64)
+            .wrapping_add((chunk_pos.y as u64).wrapping_mul(31))
+            .wrapping_add((chunk_pos.z as u64).wrapping_mul(17))
+    }
+
     pub fn generate_chunk(&mut self, chunk_pos: IVec3) -> Chunk {
         let mut voxels: Vec<Voxel> = Vec::new();
-        let mut noise: FastNoise = FastNoise::seeded(42);
+        let seed = self.calculate_seed(&chunk_pos);
+        let mut noise: FastNoise = FastNoise::seeded(seed);
         noise.set_noise_type(NoiseType::Perlin);
-        noise.set_frequency(0.5);
+        noise.set_frequency(0.3);
         // noise.set_fractal_type(FractalType::FBM);
         // noise.set_fractal_octaves(4);
         // noise.set_fractal_gain(0.5);
@@ -37,10 +44,12 @@ impl ChunkMap {
                 let global_z = chunk_pos.z * CHUNK_SIZE + z;
                 let height =
                     (noise.get_noise(global_x as f32, global_z as f32) * 16.0 + 16.0) as i32;
-
                 for y in 0..CHUNK_SIZE {
                     let global_y = chunk_pos.y * CHUNK_SIZE + y;
+                    println!("Global Y: {}, Height: {}", global_y, height);
+
                     let is_solid = global_y <= height;
+                    //println!("Is solid: {}", is_solid);
                     let voxel = Voxel {
                         id: x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z,
                         is_solid,
@@ -59,14 +68,24 @@ impl ChunkMap {
         self.0.insert(chunk_pos, chunk);
     }
 
+    pub fn render_chunk(&mut self, chunk_pos: IVec3, chunk: Chunk) {
+        self.generate_chunk(chunk_pos);
+        self.0.insert(chunk_pos, chunk);
+        // if let Some(chunk) = self.0.get(&chunk_pos) {
+        //     for voxel in &chunk.voxels {
+        //         println!("Voxel: {:?}", voxel);
+        //     }
+        // }
+    }
+
     pub fn generate_terrain(&mut self, world_size: IVec3) {
-        // let mut noise = FastNoise::seeded(42);
-        // noise.set_noise_type(NoiseType::PerlinFractal);
-        // noise.set_frequency(1.0);
-        // noise.set_fractal_type(FractalType::FBM);
-        // noise.set_fractal_octaves(4);
-        // noise.set_fractal_gain(0.5);
-        // noise.set_fractal_lacunarity(2.0);
+        let mut noise = FastNoise::seeded(42);
+        noise.set_noise_type(NoiseType::PerlinFractal);
+        noise.set_frequency(1.0);
+        noise.set_fractal_type(FractalType::FBM);
+        noise.set_fractal_octaves(4);
+        noise.set_fractal_gain(0.5);
+        noise.set_fractal_lacunarity(2.0);
 
         for x in 0..world_size.x {
             for z in 0..world_size.z {
