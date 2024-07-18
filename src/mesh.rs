@@ -4,7 +4,7 @@ use bracket_noise::prelude::*;
 
 use std::collections::HashMap;
 
-pub const CHUNK_SIZE: i32 = 8;
+pub const CHUNK_SIZE: i32 = 64;
 
 #[derive(Debug)]
 pub struct Voxel {
@@ -32,7 +32,7 @@ impl ChunkMap {
         let seed = self.calculate_seed(&chunk_pos);
         let mut noise: FastNoise = FastNoise::seeded(seed);
         noise.set_noise_type(NoiseType::Perlin);
-        noise.set_frequency(0.3);
+        noise.set_frequency(0.05);
         // noise.set_fractal_type(FractalType::FBM);
         // noise.set_fractal_octaves(4);
         // noise.set_fractal_gain(0.5);
@@ -43,10 +43,10 @@ impl ChunkMap {
                 let global_x = chunk_pos.x * CHUNK_SIZE + x;
                 let global_z = chunk_pos.z * CHUNK_SIZE + z;
                 let height =
-                    (noise.get_noise(global_x as f32, global_z as f32) * 16.0 + 16.0) as i32;
+                    (noise.get_noise(global_x as f32, global_z as f32) * 64.0 + 32.0) as i32;
                 for y in 0..CHUNK_SIZE {
                     let global_y = chunk_pos.y * CHUNK_SIZE + y;
-                    println!("Global Y: {}, Height: {}", global_y, height);
+                    //println!("Global Y: {}, Height: {}", global_y, height);
 
                     let is_solid = global_y <= height;
                     //println!("Is solid: {}", is_solid);
@@ -79,13 +79,13 @@ impl ChunkMap {
     }
 
     pub fn generate_terrain(&mut self, world_size: IVec3) {
-        let mut noise = FastNoise::seeded(42);
-        noise.set_noise_type(NoiseType::PerlinFractal);
-        noise.set_frequency(1.0);
-        noise.set_fractal_type(FractalType::FBM);
-        noise.set_fractal_octaves(4);
-        noise.set_fractal_gain(0.5);
-        noise.set_fractal_lacunarity(2.0);
+        let mut noise = FastNoise::new();
+        noise.set_noise_type(NoiseType::Perlin);
+        noise.set_frequency(0.05);
+        // noise.set_fractal_type(FractalType::FBM);
+        // noise.set_fractal_octaves(4);
+        // noise.set_fractal_gain(0.5);
+        // noise.set_fractal_lacunarity(2.0);
 
         for x in 0..world_size.x {
             for z in 0..world_size.z {
