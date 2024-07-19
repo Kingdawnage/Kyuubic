@@ -97,6 +97,31 @@ impl ChunkMap {
             }
         }
     }
+
+    pub fn create_chunk_heightmap(&mut self, chunk_pos: IVec3) -> Vec<i32> {
+        let mut heightmap: Vec<i32> = Vec::new();
+        let seed = self.calculate_seed(&chunk_pos);
+        let mut noise: FastNoise = FastNoise::seeded(seed);
+        noise.set_noise_type(NoiseType::Simplex);
+        noise.set_frequency(0.05);
+
+        for x in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
+                // Get voxel X and Z position in global space
+                let voxel_x = chunk_pos.x * CHUNK_SIZE + x;
+                let voxel_z = chunk_pos.z * CHUNK_SIZE + z;
+                let mut noise_value =
+                    noise.get_noise(voxel_x as f32 / 16.0, voxel_z as f32 / 16.0) as i32;
+                noise_value = (noise_value + 1) / 2;
+                noise_value = noise_value * 16;
+
+                // Apply to heightmap
+                heightmap.push(noise_value);
+            }
+        }
+
+        return heightmap;
+    }
 }
 
 pub fn generate_mesh(
