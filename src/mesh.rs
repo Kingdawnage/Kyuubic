@@ -4,7 +4,7 @@ use bracket_noise::prelude::*;
 
 use std::collections::HashMap;
 
-pub const CHUNK_SIZE: i32 = 64;
+pub const CHUNK_SIZE: i32 = 32;
 
 #[derive(Debug)]
 pub struct Voxel {
@@ -99,7 +99,7 @@ impl ChunkMap {
     }
 
     pub fn create_chunk_heightmap(&mut self, chunk_pos: IVec3) -> Vec<i32> {
-        let mut heightmap: Vec<i32> = Vec::new();
+        let mut heightmap: Vec<i32> = Vec::with_capacity((CHUNK_SIZE * CHUNK_SIZE) as usize); // vector preallocation
         let seed = self.calculate_seed(&chunk_pos);
         let mut noise: FastNoise = FastNoise::seeded(seed);
         noise.set_noise_type(NoiseType::Simplex);
@@ -121,6 +121,50 @@ impl ChunkMap {
         }
 
         return heightmap;
+    }
+
+    pub fn create_chunk_voxels(&mut self, chunk_pos: IVec3, heightmap: Vec<i32>) -> Vec<Voxel> {
+        let mut voxels: Vec<Voxel> =
+            Vec::with_capacity((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize); // vector preallocation
+
+        for x in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
+                for y in 0..CHUNK_SIZE {
+                    let voxel_id = x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z;
+                    let voxel_y = chunk_pos.y * CHUNK_SIZE + y;
+                    let heightmap_index = (x * CHUNK_SIZE + z) as usize;
+                    let heightmap_value = heightmap[heightmap_index];
+
+                    let is_solid = voxel_y <= heightmap_value;
+                    let voxel = Voxel {
+                        id: voxel_id,
+                        is_solid,
+                    };
+                    voxels.push(voxel);
+                }
+            }
+        }
+
+        return voxels;
+    }
+
+    pub fn generate_chunk_v2(&mut self, chunk_pos: IVec3) -> Chunk {
+        let heightmap = self.create_chunk_heightmap(chunk_pos);
+        let voxels = self.create_chunk_voxels(chunk_pos, heightmap);
+        let chunk = Chunk { voxels };
+        return chunk;
+    }
+
+    pub fn generate_terrain_v2(&mut self, world_size: IVec3) {
+        for x in 0..world_size.x {
+            for z in 0..world_size.z {
+                for y in 0..world_size.y {
+                    let chunk_pos: IVec3 = IVec3::new(x, y, z);
+                    let chunk = self.generate_chunk_v2(chunk_pos);
+                    self.insert_chunk(chunk_pos, chunk);
+                }
+            }
+        }
     }
 }
 
