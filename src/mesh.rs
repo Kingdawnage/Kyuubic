@@ -1,8 +1,10 @@
 #![allow(dead_code)]
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
+use rand::Rng;
+use std::hash::{Hash, Hasher};
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::DefaultHasher};
 
 pub const CHUNK_SIZE: i32 = 32;
 
@@ -18,13 +20,27 @@ pub struct Chunk {
 }
 
 #[derive(Debug, Resource)]
-pub struct ChunkMap(pub HashMap<IVec3, Chunk>);
+pub struct ChunkMap {
+    pub map: HashMap<IVec3, Chunk>,
+    pub seed: u64,
+}
 
 impl ChunkMap {
+    pub fn new() -> Self {
+        let seed = rand::thread_rng().gen();
+        Self {
+            map: HashMap::new(),
+            seed,
+        }
+    }
+
     fn calculate_seed(&self, chunk_pos: &IVec3) -> u64 {
-        (chunk_pos.x as u64)
-            .wrapping_add((chunk_pos.y as u64).wrapping_mul(31))
-            .wrapping_add((chunk_pos.z as u64).wrapping_mul(17))
+        // (chunk_pos.x as u64)
+        //     .wrapping_add((chunk_pos.y as u64).wrapping_mul(31))
+        //     .wrapping_add((chunk_pos.z as u64).wrapping_mul(17))
+        let mut hasher = DefaultHasher::new();
+        chunk_pos.hash(&mut hasher);
+        hasher.finish()
     }
 
     pub fn generate_chunk(&mut self, chunk_pos: IVec3) -> Chunk {
@@ -43,7 +59,7 @@ impl ChunkMap {
                 let global_x = chunk_pos.x * CHUNK_SIZE + x;
                 let global_z = chunk_pos.z * CHUNK_SIZE + z;
                 let height =
-                    (noise.get_noise(global_x as f32, global_z as f32) * 64.0 + 32.0) as i32;
+                    (noise.get_noise(global_x as f32, global_z as f32) * 32.0 + 32.0) as i32;
                 for y in 0..CHUNK_SIZE {
                     let global_y = chunk_pos.y * CHUNK_SIZE + y;
                     //println!("Global Y: {}, Height: {}", global_y, height);
@@ -65,12 +81,12 @@ impl ChunkMap {
     }
 
     pub fn insert_chunk(&mut self, chunk_pos: IVec3, chunk: Chunk) {
-        self.0.insert(chunk_pos, chunk);
+        self.map.insert(chunk_pos, chunk);
     }
 
     pub fn render_chunk(&mut self, chunk_pos: IVec3, chunk: Chunk) {
         self.generate_chunk(chunk_pos);
-        self.0.insert(chunk_pos, chunk);
+        self.map.insert(chunk_pos, chunk);
         // if let Some(chunk) = self.0.get(&chunk_pos) {
         //     for voxel in &chunk.voxels {
         //         println!("Voxel: {:?}", voxel);
@@ -100,26 +116,65 @@ impl ChunkMap {
 
     pub fn create_chunk_heightmap(&mut self, chunk_pos: IVec3) -> Vec<i32> {
         let mut heightmap: Vec<i32> = Vec::with_capacity((CHUNK_SIZE * CHUNK_SIZE) as usize); // vector preallocation
-        let seed = self.calculate_seed(&chunk_pos);
-        let mut noise: FastNoise = FastNoise::seeded(seed);
+                                                                                              //let seed = self.calculate_seed(&chunk_pos);
+        let mut noise: FastNoise = FastNoise::seeded(self.seed);
         noise.set_noise_type(NoiseType::Simplex);
-        noise.set_frequency(0.05);
+        noise.set_frequency(0.3);
 
-        for x in 0..CHUNK_SIZE {
-            for z in 0..CHUNK_SIZE {
+        for z in 0..CHUNK_SIZE {
+            for x in 0..CHUNK_SIZE {
                 // Get voxel X and Z position in global space
                 let voxel_x = chunk_pos.x * CHUNK_SIZE + x;
                 let voxel_z = chunk_pos.z * CHUNK_SIZE + z;
-                let mut noise_value =
-                    noise.get_noise(voxel_x as f32 / 16.0, voxel_z as f32 / 16.0) as i32;
-                noise_value = (noise_value + 1) / 2;
-                noise_value = noise_value * 16;
+                let noise_value1 =
+                    noise.get_noise(voxel_x as f32 / 16.0, voxel_z as f32 / 16.0) * 0.5;
+                let noise_value2 =
+                    noise.get_noise(voxel_x as f32 / 32.0, voxel_z as f32 / 32.0) * 0.25;
+                let noise_value3 =
+                    noise.get_noise(voxel_x as f32 / 64.0, voxel_z as f32 / 64.0) * 0.25;
 
+                let noise_value = noise_value1 + noise_value2 + noise_value3;
+                //println!("Noise Value: {}", noise_value);
+                let normalized_noise_value = (noise_value + 1.0) / 2.0;
+                let scaled_noise_value = normalized_noise_value * 32.0;
+                let final_noise_value = scaled_noise_value as i32;
                 // Apply to heightmap
-                heightmap.push(noise_value);
+                heightmap.push(final_noise_value);
             }
         }
 
+        // return heightmap;
+        // Gaussian blur kernel
+        let kernel = [[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]];
+
+        let kernel_sum: f32 = kernel.iter().flatten().sum();
+
+        // // Smoothing the heightmap using Gaussian blur
+        // let mut smoothed_heightmap = vec![0; heightmap.len()];
+        // for z in 0..CHUNK_SIZE {
+        //     for x in 0..CHUNK_SIZE {
+        //         let mut total_height = 0.0;
+
+        //         for dz in -1..=1 {
+        //             for dx in -1..=1 {
+        //                 let nx = x as i32 + dx;
+        //                 let nz = z as i32 + dz;
+
+        //                 if nx >= 0 && nx < CHUNK_SIZE as i32 && nz >= 0 && nz < CHUNK_SIZE as i32 {
+        //                     let kernel_value = kernel[(dx + 1) as usize][(dz + 1) as usize];
+        //                     total_height += heightmap[(nx + nz * CHUNK_SIZE as i32) as usize]
+        //                         as f32
+        //                         * kernel_value;
+        //                 }
+        //             }
+        //         }
+
+        //         smoothed_heightmap[(x + z * CHUNK_SIZE) as usize] =
+        //             (total_height / kernel_sum) as i32;
+        //     }
+        // }
+
+        // smoothed_heightmap
         return heightmap;
     }
 
@@ -127,12 +182,12 @@ impl ChunkMap {
         let mut voxels: Vec<Voxel> =
             Vec::with_capacity((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize); // vector preallocation
 
-        for x in 0..CHUNK_SIZE {
-            for z in 0..CHUNK_SIZE {
+        for z in 0..CHUNK_SIZE {
+            for x in 0..CHUNK_SIZE {
+                let heightmap_index = (x * CHUNK_SIZE + z) as usize;
                 for y in 0..CHUNK_SIZE {
                     let voxel_id = x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z;
                     let voxel_y = chunk_pos.y * CHUNK_SIZE + y;
-                    let heightmap_index = (x * CHUNK_SIZE + z) as usize;
                     let heightmap_value = heightmap[heightmap_index];
 
                     let is_solid = voxel_y <= heightmap_value;
@@ -150,14 +205,16 @@ impl ChunkMap {
 
     pub fn generate_chunk_v2(&mut self, chunk_pos: IVec3) -> Chunk {
         let heightmap = self.create_chunk_heightmap(chunk_pos);
+        // println!("Heightmap: {:?}", heightmap);
         let voxels = self.create_chunk_voxels(chunk_pos, heightmap);
         let chunk = Chunk { voxels };
         return chunk;
     }
 
     pub fn generate_terrain_v2(&mut self, world_size: IVec3) {
-        for x in 0..world_size.x {
-            for z in 0..world_size.z {
+        println!("{}", self.seed);
+        for z in 0..world_size.z {
+            for x in 0..world_size.x {
                 for y in 0..world_size.y {
                     let chunk_pos: IVec3 = IVec3::new(x, y, z);
                     let chunk = self.generate_chunk_v2(chunk_pos);
@@ -178,7 +235,7 @@ pub fn generate_mesh(
     let mut colors = Vec::new();
     let mut index_offset = 0;
 
-    if let Some(chunk) = chunk_map.0.get(&chunk_pos) {
+    if let Some(chunk) = chunk_map.map.get(&chunk_pos) {
         for voxel in &chunk.voxels {
             if voxel.is_solid {
                 let x = voxel.id % CHUNK_SIZE;
