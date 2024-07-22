@@ -6,11 +6,34 @@ use rand::Rng;
 use std::collections::HashMap;
 
 pub const CHUNK_SIZE: i32 = 32;
+pub const CHUNK_HEIGHT: i32 = 64;
+
+#[derive(Debug)]
+pub enum BlockType {
+    Air,
+    Stone,
+    Dirt,
+    Grass,
+    Snow,
+}
+
+impl BlockType {
+    pub fn color(&self) -> [f32; 4] {
+        match self {
+            BlockType::Air => [0.0, 0.0, 0.0, 0.0],
+            BlockType::Stone => [0.5, 0.5, 0.5, 1.0],
+            BlockType::Dirt => [0.5, 0.25, 0.0, 1.0],
+            BlockType::Grass => [0.0, 0.5, 0.0, 1.0],
+            BlockType::Snow => [1.0, 1.0, 1.0, 1.0],
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Voxel {
     pub id: i32,
     pub is_solid: bool,
+    pub block_type: BlockType,
 }
 
 #[derive(Debug)]
@@ -58,7 +81,7 @@ impl ChunkMap {
                 let noise_value = noise_value1 + noise_value2 + noise_value3;
                 //println!("Noise Value: {}", noise_value);
                 let normalized_noise_value = (noise_value + 1.0) / 2.0;
-                let scaled_noise_value = normalized_noise_value * 32.0;
+                let scaled_noise_value = normalized_noise_value * 64.0;
                 let final_noise_value = scaled_noise_value as i32;
                 // Apply to heightmap
                 heightmap.push(final_noise_value);
@@ -70,20 +93,34 @@ impl ChunkMap {
 
     pub fn create_chunk_voxels(&mut self, chunk_pos: IVec3, heightmap: Vec<i32>) -> Vec<Voxel> {
         let mut voxels: Vec<Voxel> =
-            Vec::with_capacity((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize); // vector preallocation
+            Vec::with_capacity((CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE) as usize); // vector preallocation
 
         for z in 0..CHUNK_SIZE {
             for x in 0..CHUNK_SIZE {
                 let heightmap_index = (x * CHUNK_SIZE + z) as usize;
-                for y in 0..CHUNK_SIZE {
-                    let voxel_id = x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z;
-                    let voxel_y = chunk_pos.y * CHUNK_SIZE + y;
+                for y in 0..CHUNK_HEIGHT {
+                    let voxel_id = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+                    let voxel_y = chunk_pos.y * CHUNK_HEIGHT + y;
                     let heightmap_value = heightmap[heightmap_index];
 
                     let is_solid = voxel_y <= heightmap_value;
+
+                    let block_type = if voxel_y >= 40 {
+                        BlockType::Snow
+                    } else if voxel_y == heightmap_value {
+                        BlockType::Grass
+                    } else if voxel_y > heightmap_value - 10 {
+                        BlockType::Dirt
+                    } else if voxel_y > 0 {
+                        BlockType::Stone
+                    } else {
+                        BlockType::Air
+                    };
+
                     let voxel = Voxel {
                         id: voxel_id,
                         is_solid,
+                        block_type,
                     };
                     voxels.push(voxel);
                 }
@@ -129,8 +166,8 @@ pub fn generate_mesh(
         for voxel in &chunk.voxels {
             if voxel.is_solid {
                 let x = voxel.id % CHUNK_SIZE;
-                let y = (voxel.id / CHUNK_SIZE) % CHUNK_SIZE;
-                let z = voxel.id / (CHUNK_SIZE * CHUNK_SIZE);
+                let y = (voxel.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+                let z = voxel.id / (CHUNK_SIZE * CHUNK_HEIGHT);
 
                 let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
 
@@ -142,8 +179,26 @@ pub fn generate_mesh(
                 for normal in cube_normals.iter() {
                     normals.extend([*normal; 4]);
                 }
+                let block_colors = &voxel.block_type;
+                match block_colors {
+                    BlockType::Air => {
+                        colors.extend([[0.0, 0.0, 0.0, 0.0]; 24]);
+                    }
+                    BlockType::Stone => {
+                        colors.extend([[0.5, 0.5, 0.5, 1.0]; 24]);
+                    }
+                    BlockType::Dirt => {
+                        colors.extend([[0.5, 0.25, 0.0, 1.0]; 24]);
+                    }
+                    BlockType::Grass => {
+                        colors.extend([[0.0, 0.5, 0.0, 1.0]; 24]);
+                    }
+                    BlockType::Snow => {
+                        colors.extend([[1.0, 1.0, 1.0, 1.0]; 24]);
+                    }
+                }
                 // normals.extend(generate_cube_normals());
-                colors.extend([[0.0, 1.0, 0.0, 1.0]; 24]);
+                //colors.extend([[0.0, 1.0, 0.0, 1.0]; 24]);
 
                 index_offset += 24;
             }
