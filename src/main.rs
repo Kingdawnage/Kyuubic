@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use bevy::{
+    diagnostic::FrameTimeDiagnosticsPlugin,
     prelude::*,
     render::{
         mesh::{Indices, PrimitiveTopology},
@@ -9,16 +10,24 @@ use bevy::{
 
 mod camera;
 mod mesh;
+mod utils;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(camera::FlyCamera::default())
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, utils::setup_fps_counter))
+        .add_systems(Update, utils::update_fps)
         .insert_resource(mesh::ChunkMap::new())
-        .add_systems(Update, camera::process_keyboard)
-        .add_systems(Update, camera::process_mouse)
-        .add_systems(Update, camera::update_camera)
+        .add_systems(
+            Update,
+            (
+                camera::process_keyboard,
+                camera::process_mouse,
+                camera::update_camera,
+            ),
+        )
         .run();
 }
 
