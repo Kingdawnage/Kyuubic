@@ -6,7 +6,6 @@ use bevy::{
         render_asset::RenderAssetUsages,
     },
 };
-//use std::collections::HashMap;
 
 mod camera;
 mod mesh;
@@ -49,34 +48,9 @@ fn setup(
         ..Default::default()
     });
 
-    // // Generate and store chunck of voxels
-    // let chunk_pos = IVec3::new(0, 0, 0);
-    // chunk_map.generate_chunk(chunk_pos);
-    // let (vertices, indices, normals, colors) = mesh::generate_mesh(&chunk_map, chunk_pos);
-
-    // let mut mesh = Mesh::new(
-    //     PrimitiveTopology::TriangleList,
-    //     RenderAssetUsages::default(),
-    // );
-    // mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-    // mesh.insert_indices(Indices::U32(indices));
-    // mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-    // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    // let mesh_handle = meshes.add(mesh);
-
-    // commands.spawn(PbrBundle {
-    //     mesh: mesh_handle,
-    //     material: materials.add(StandardMaterial {
-    //         cull_mode: None,
-    //         ..Default::default()
-    //     }),
-    //     transform: Transform::from_xyz(-1.0, 0.5, 0.0),
-    //     ..Default::default()
-    // });
-
     // Generate terrain with heightmap
     let world_size = IVec3::new(6, 1, 6);
-    chunk_map.generate_terrain_v2(world_size);
+    chunk_map.generate_terrain(world_size);
 
     for (chunk_pos, _) in chunk_map.map.iter() {
         let (vertices, indices, normals, colors) = mesh::generate_mesh(&chunk_map, *chunk_pos);
@@ -106,63 +80,4 @@ fn setup(
             ..Default::default()
         });
     }
-
-    // // Generate and store a world of chunks
-    // let world_size = IVec3::new(2, 1, 2);
-    // chunk_map.generate_terrain(world_size);
-
-    // // Create entities for each chunk
-    // for (chunk_pos, _) in chunk_map.0.iter() {
-    //     let (vertices, indices, normals, colors) = mesh::generate_mesh(&chunk_map, *chunk_pos);
-
-    //     let mut mesh = Mesh::new(
-    //         PrimitiveTopology::TriangleList,
-    //         RenderAssetUsages::default(),
-    //     );
-    //     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-    //     mesh.insert_indices(Indices::U32(indices));
-    //     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-    //     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    //     let mesh_handle = meshes.add(mesh);
-
-    //     commands.spawn(PbrBundle {
-    //         mesh: mesh_handle,
-    //         material: materials.add(StandardMaterial {
-    //             //base_color: Color::srgb(0.8, 0.0, 0.0),
-    //             cull_mode: None,
-    //             ..Default::default()
-    //         }),
-    //         transform: Transform::from_xyz(
-    //             chunk_pos.x as f32 * mesh::CHUNK_SIZE as f32,
-    //             chunk_pos.y as f32 * mesh::CHUNK_SIZE as f32,
-    //             chunk_pos.z as f32 * mesh::CHUNK_SIZE as f32,
-    //         ),
-    //         ..Default::default()
-    //     });
-    // }
-
-    // // Generate one chunk
-    // let chunk_pos = IVec3::new(0, 0, 0);
-    // let chunk = chunk_map.generate_chunk(chunk_pos);
-    // chunk_map.render_chunk(chunk_pos, chunk);
-    // let (vertices, indices, normals, colors) = mesh::generate_mesh(&chunk_map, chunk_pos);
-    // let mut mesh = Mesh::new(
-    //     PrimitiveTopology::TriangleList,
-    //     RenderAssetUsages::default(),
-    // );
-    // mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-    // mesh.insert_indices(Indices::U32(indices));
-    // mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-    // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    // let mesh_handle = meshes.add(mesh);
-
-    // commands.spawn(PbrBundle {
-    //     mesh: mesh_handle,
-    //     material: materials.add(StandardMaterial {
-    //         cull_mode: None,
-    //         ..Default::default()
-    //     }),
-    //     transform: Transform::from_xyz(-1.0, 0.5, 0.0),
-    //     ..Default::default()
-    // });
 }

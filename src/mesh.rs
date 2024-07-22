@@ -2,9 +2,8 @@
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
 use rand::Rng;
-use std::hash::{Hash, Hasher};
 
-use std::{collections::HashMap, hash::DefaultHasher};
+use std::collections::HashMap;
 
 pub const CHUNK_SIZE: i32 = 32;
 
@@ -34,89 +33,12 @@ impl ChunkMap {
         }
     }
 
-    fn calculate_seed(&self, chunk_pos: &IVec3) -> u64 {
-        // (chunk_pos.x as u64)
-        //     .wrapping_add((chunk_pos.y as u64).wrapping_mul(31))
-        //     .wrapping_add((chunk_pos.z as u64).wrapping_mul(17))
-        let mut hasher = DefaultHasher::new();
-        chunk_pos.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    pub fn generate_chunk(&mut self, chunk_pos: IVec3) -> Chunk {
-        let mut voxels: Vec<Voxel> = Vec::new();
-        let seed = self.calculate_seed(&chunk_pos);
-        let mut noise: FastNoise = FastNoise::seeded(seed);
-        noise.set_noise_type(NoiseType::Perlin);
-        noise.set_frequency(0.05);
-        // noise.set_fractal_type(FractalType::FBM);
-        // noise.set_fractal_octaves(4);
-        // noise.set_fractal_gain(0.5);
-        // noise.set_fractal_lacunarity(2.0);
-
-        for x in 0..CHUNK_SIZE {
-            for z in 0..CHUNK_SIZE {
-                let global_x = chunk_pos.x * CHUNK_SIZE + x;
-                let global_z = chunk_pos.z * CHUNK_SIZE + z;
-                let height =
-                    (noise.get_noise(global_x as f32, global_z as f32) * 32.0 + 32.0) as i32;
-                for y in 0..CHUNK_SIZE {
-                    let global_y = chunk_pos.y * CHUNK_SIZE + y;
-                    //println!("Global Y: {}, Height: {}", global_y, height);
-
-                    let is_solid = global_y <= height;
-                    //println!("Is solid: {}", is_solid);
-                    let voxel = Voxel {
-                        id: x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z,
-                        is_solid,
-                    };
-                    voxels.push(voxel);
-                }
-            }
-        }
-
-        let chunk = Chunk { voxels };
-        //self.insert_chunk(chunk_pos, chunk);
-        return chunk;
-    }
-
     pub fn insert_chunk(&mut self, chunk_pos: IVec3, chunk: Chunk) {
         self.map.insert(chunk_pos, chunk);
     }
 
-    pub fn render_chunk(&mut self, chunk_pos: IVec3, chunk: Chunk) {
-        self.generate_chunk(chunk_pos);
-        self.map.insert(chunk_pos, chunk);
-        // if let Some(chunk) = self.0.get(&chunk_pos) {
-        //     for voxel in &chunk.voxels {
-        //         println!("Voxel: {:?}", voxel);
-        //     }
-        // }
-    }
-
-    pub fn generate_terrain(&mut self, world_size: IVec3) {
-        let mut noise = FastNoise::new();
-        noise.set_noise_type(NoiseType::Perlin);
-        noise.set_frequency(0.05);
-        // noise.set_fractal_type(FractalType::FBM);
-        // noise.set_fractal_octaves(4);
-        // noise.set_fractal_gain(0.5);
-        // noise.set_fractal_lacunarity(2.0);
-
-        for x in 0..world_size.x {
-            for z in 0..world_size.z {
-                for y in 0..world_size.y {
-                    let chunk_pos: IVec3 = IVec3::new(x, y, z);
-                    let chunk = self.generate_chunk(chunk_pos);
-                    self.insert_chunk(chunk_pos, chunk);
-                }
-            }
-        }
-    }
-
     pub fn create_chunk_heightmap(&mut self, chunk_pos: IVec3) -> Vec<i32> {
         let mut heightmap: Vec<i32> = Vec::with_capacity((CHUNK_SIZE * CHUNK_SIZE) as usize); // vector preallocation
-                                                                                              //let seed = self.calculate_seed(&chunk_pos);
         let mut noise: FastNoise = FastNoise::seeded(self.seed);
         noise.set_noise_type(NoiseType::Simplex);
         noise.set_frequency(0.3);
@@ -143,38 +65,6 @@ impl ChunkMap {
             }
         }
 
-        // return heightmap;
-        // Gaussian blur kernel
-        let kernel = [[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]];
-
-        let kernel_sum: f32 = kernel.iter().flatten().sum();
-
-        // // Smoothing the heightmap using Gaussian blur
-        // let mut smoothed_heightmap = vec![0; heightmap.len()];
-        // for z in 0..CHUNK_SIZE {
-        //     for x in 0..CHUNK_SIZE {
-        //         let mut total_height = 0.0;
-
-        //         for dz in -1..=1 {
-        //             for dx in -1..=1 {
-        //                 let nx = x as i32 + dx;
-        //                 let nz = z as i32 + dz;
-
-        //                 if nx >= 0 && nx < CHUNK_SIZE as i32 && nz >= 0 && nz < CHUNK_SIZE as i32 {
-        //                     let kernel_value = kernel[(dx + 1) as usize][(dz + 1) as usize];
-        //                     total_height += heightmap[(nx + nz * CHUNK_SIZE as i32) as usize]
-        //                         as f32
-        //                         * kernel_value;
-        //                 }
-        //             }
-        //         }
-
-        //         smoothed_heightmap[(x + z * CHUNK_SIZE) as usize] =
-        //             (total_height / kernel_sum) as i32;
-        //     }
-        // }
-
-        // smoothed_heightmap
         return heightmap;
     }
 
@@ -203,7 +93,7 @@ impl ChunkMap {
         return voxels;
     }
 
-    pub fn generate_chunk_v2(&mut self, chunk_pos: IVec3) -> Chunk {
+    pub fn generate_chunk(&mut self, chunk_pos: IVec3) -> Chunk {
         let heightmap = self.create_chunk_heightmap(chunk_pos);
         // println!("Heightmap: {:?}", heightmap);
         let voxels = self.create_chunk_voxels(chunk_pos, heightmap);
@@ -211,13 +101,13 @@ impl ChunkMap {
         return chunk;
     }
 
-    pub fn generate_terrain_v2(&mut self, world_size: IVec3) {
+    pub fn generate_terrain(&mut self, world_size: IVec3) {
         println!("{}", self.seed);
         for z in 0..world_size.z {
             for x in 0..world_size.x {
                 for y in 0..world_size.y {
                     let chunk_pos: IVec3 = IVec3::new(x, y, z);
-                    let chunk = self.generate_chunk_v2(chunk_pos);
+                    let chunk = self.generate_chunk(chunk_pos);
                     self.insert_chunk(chunk_pos, chunk);
                 }
             }
