@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_HEIGHT: i32 = 64;
+pub const SEA_LEVEL: i32 = 20;
 
 #[derive(Debug)]
 pub enum BlockType {
@@ -15,6 +16,7 @@ pub enum BlockType {
     Dirt,
     Grass,
     Snow,
+    Water,
 }
 
 impl BlockType {
@@ -25,6 +27,7 @@ impl BlockType {
             BlockType::Dirt => [0.5, 0.25, 0.0, 1.0],
             BlockType::Grass => [0.0, 0.5, 0.0, 1.0],
             BlockType::Snow => [1.0, 1.0, 1.0, 1.0],
+            BlockType::Water => [0.0, 0.0, 1.0, 0.1],
         }
     }
 }
@@ -103,18 +106,25 @@ impl ChunkMap {
                     let voxel_y = chunk_pos.y * CHUNK_HEIGHT + y;
                     let heightmap_value = heightmap[heightmap_index];
 
-                    let is_solid = voxel_y <= heightmap_value;
+                    // let is_solid = voxel_y <= heightmap_value;
 
-                    let block_type = if voxel_y >= 40 {
+                    let block_type = if voxel_y >= 40 && voxel_y <= heightmap_value {
                         BlockType::Snow
-                    } else if voxel_y == heightmap_value {
+                    } else if voxel_y == heightmap_value && voxel_y <= heightmap_value {
                         BlockType::Grass
-                    } else if voxel_y > heightmap_value - 10 {
+                    } else if voxel_y > heightmap_value - 10 && voxel_y <= heightmap_value {
                         BlockType::Dirt
-                    } else if voxel_y > 0 {
+                    } else if voxel_y > 0 && voxel_y <= heightmap_value {
                         BlockType::Stone
+                    } else if voxel_y <= SEA_LEVEL && voxel_y > heightmap_value {
+                        BlockType::Water
                     } else {
                         BlockType::Air
+                    };
+
+                    let is_solid = match block_type {
+                        BlockType::Air => false,
+                        _ => true,
                     };
 
                     let voxel = Voxel {
@@ -182,19 +192,22 @@ pub fn generate_mesh(
                 let block_colors = &voxel.block_type;
                 match block_colors {
                     BlockType::Air => {
-                        colors.extend([[0.0, 0.0, 0.0, 0.0]; 24]);
+                        colors.extend([BlockType::Air.color(); 24]);
                     }
                     BlockType::Stone => {
-                        colors.extend([[0.5, 0.5, 0.5, 1.0]; 24]);
+                        colors.extend([BlockType::Stone.color(); 24]);
                     }
                     BlockType::Dirt => {
-                        colors.extend([[0.5, 0.25, 0.0, 1.0]; 24]);
+                        colors.extend([BlockType::Dirt.color(); 24]);
                     }
                     BlockType::Grass => {
-                        colors.extend([[0.0, 0.5, 0.0, 1.0]; 24]);
+                        colors.extend([BlockType::Grass.color(); 24]);
                     }
                     BlockType::Snow => {
-                        colors.extend([[1.0, 1.0, 1.0, 1.0]; 24]);
+                        colors.extend([BlockType::Snow.color(); 24]);
+                    }
+                    BlockType::Water => {
+                        colors.extend([BlockType::Water.color(); 24]);
                     }
                 }
                 // normals.extend(generate_cube_normals());
