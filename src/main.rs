@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin,
+    pbr::wireframe::{WireframeConfig, WireframePlugin},
     prelude::*,
     render::{
         mesh::{Indices, PrimitiveTopology},
@@ -15,11 +16,18 @@ mod utils;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(WireframePlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(camera::FlyCamera::default())
         .add_systems(Startup, (setup, utils::setup_fps_counter))
-        .add_systems(Update, utils::update_fps)
+        .add_systems(Update, (utils::update_fps, utils::toggle_wireframe_system))
         .insert_resource(mesh::ChunkMap::new())
+        .insert_resource(WireframeConfig {
+            global: false,
+            default_color: Color::WHITE,
+            ..Default::default()
+        })
+        .insert_resource(utils::WireframeState::default())
         .add_systems(
             Update,
             (

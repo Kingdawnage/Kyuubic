@@ -1,14 +1,22 @@
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    pbr::wireframe::WireframeConfig,
     prelude::*,
 };
 
 #[derive(Resource)]
-struct WireframeState {
+pub struct WireframeState {
     enabled: bool,
+}
+
+impl Default for WireframeState {
+    fn default() -> Self {
+        Self { enabled: false }
+    }
 }
 #[derive(Resource, Component)]
 pub struct FpsText;
+
 #[derive(Component)]
 struct FpsRoot;
 
@@ -102,19 +110,20 @@ pub fn setup_fps_counter(mut commands: Commands) {
     commands.entity(root).push_children(&[text_fps]);
 }
 
-// fn toggle_wireframe_system(
-//     keyboard_input: Res<ButtonInput<KeyCode>>,
-//     mut wireframe_state: ResMut<WireframeState>,
-//     mut query: Query<&mut Handle<StandardMaterial>>,
-//     mut materials: ResMut<Assets<StandardMaterial>>,
-// ) {
-//     if keyboard_input.just_pressed(KeyCode::KeyW) {
-//         if wireframe_state.enabled {
-//             wireframe_state.enabled = false;
-//             println!("Wireframe disabled");
-//         } else {
-//             wireframe_state.enabled = true;
-//             println!("Wireframe enabled");
-//         }
-//     }
-// }
+pub fn toggle_wireframe_system(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut wireframe_state: ResMut<WireframeState>,
+    mut wireframe_config: ResMut<WireframeConfig>,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyT) {
+        if wireframe_state.enabled {
+            wireframe_state.enabled = false;
+            wireframe_config.global = false;
+            println!("Wireframe disabled");
+        } else {
+            wireframe_state.enabled = true;
+            wireframe_config.global = true;
+            println!("Wireframe enabled");
+        }
+    }
+}

@@ -149,7 +149,7 @@ impl ChunkMap {
     }
 
     pub fn generate_terrain(&mut self, world_size: IVec3) {
-        println!("{}", self.seed);
+        // println!("{}", self.seed);
         for z in 0..world_size.z {
             for x in 0..world_size.x {
                 for y in 0..world_size.y {
