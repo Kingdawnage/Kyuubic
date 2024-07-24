@@ -116,7 +116,7 @@ pub fn toggle_wireframe_system(
     mut wireframe_config: ResMut<WireframeConfig>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyT) {
-        if wireframe_state.enabled {
+        if wireframe_config.global {
             wireframe_state.enabled = false;
             wireframe_config.global = false;
             println!("Wireframe disabled");
