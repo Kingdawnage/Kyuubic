@@ -44,6 +44,29 @@ pub struct Chunk {
     pub voxels: Vec<Voxel>,
 }
 
+impl Chunk {
+    pub fn get_size(&self) -> i32 {
+        self.voxels.len() as i32
+    }
+
+    fn rendered_voxels(&self) -> Vec<&Voxel> {
+        self.voxels.iter().filter(|v| v.is_solid).collect()
+    }
+
+    pub fn rendered_voxels_count(&self) -> i32 {
+        self.rendered_voxels().len() as i32
+    }
+
+    pub fn get_voxel(&self, x: i32, y: i32, z: i32) -> Option<&Voxel> {
+        if x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE {
+            return None;
+        }
+
+        let index = (x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z) as usize;
+        return self.voxels.get(index);
+    }
+}
+
 #[derive(Debug, Resource)]
 pub struct ChunkMap {
     pub map: HashMap<IVec3, Chunk>,
@@ -149,16 +172,20 @@ impl ChunkMap {
     }
 
     pub fn generate_terrain(&mut self, world_size: IVec3) {
+        let mut solid_voxels: i32 = 0;
         // println!("{}", self.seed);
         for z in 0..world_size.z {
             for x in 0..world_size.x {
                 for y in 0..world_size.y {
                     let chunk_pos: IVec3 = IVec3::new(x, y, z);
                     let chunk = self.generate_chunk(chunk_pos);
+                    solid_voxels += chunk.rendered_voxels_count();
                     self.insert_chunk(chunk_pos, chunk);
                 }
             }
         }
+
+        println!("Solid Voxels: {}", solid_voxels);
     }
 }
 
