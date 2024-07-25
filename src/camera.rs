@@ -19,7 +19,7 @@ pub struct FlyCamera {
 impl Default for FlyCamera {
     fn default() -> Self {
         FlyCamera {
-            transform: Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(0.0, 150.0, -50.0).looking_at(Vec3::ZERO, Vec3::Y),
             sensitivity: 0.2,
             speed: 0.5,
             position: Vec3::new(3.0, 10.0, 10.0),
@@ -31,6 +31,20 @@ impl Default for FlyCamera {
             pitch: 0.0,
             enabled: true,
         }
+    }
+}
+
+impl FlyCamera {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn get_transform(&self) -> Transform {
+        self.transform
+    }
+
+    pub fn get_position(&self) -> Vec3 {
+        self.position
     }
 }
 

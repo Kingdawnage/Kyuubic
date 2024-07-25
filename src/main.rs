@@ -48,7 +48,7 @@ fn setup(
     // Spawn 3D camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(3.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: camera::FlyCamera::default().get_transform(),
             ..Default::default()
         },
         camera::FlyCamera::default(),
@@ -58,6 +58,7 @@ fn setup(
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             intensity: 2000.0,
+            range: 1000.0,
             shadows_enabled: true,
             ..Default::default()
         },

@@ -9,7 +9,7 @@ pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_HEIGHT: i32 = 64;
 pub const SEA_LEVEL: i32 = 20;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BlockType {
     Air,
     Stone,
@@ -59,10 +59,12 @@ impl Chunk {
 
     pub fn get_voxel(&self, x: i32, y: i32, z: i32) -> Option<&Voxel> {
         if x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE {
+            //println!("Out of bounds: x={}, y={}, z={}", x, y, z);
             return None;
         }
 
         let index = (x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z) as usize;
+        //println!("Coordinates: x={}, y={}, z={} -> Index: {}", x, y, z, index);
         return self.voxels.get(index);
     }
 }
@@ -208,6 +210,55 @@ pub fn generate_mesh(
 
                 let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
 
+                // // Check each face of the voxel
+                // let neighbours = [
+                //     chunk.get_voxel(x, y + 1, z), // Top voxel
+                //     chunk.get_voxel(x, y - 1, z), // Bottom voxel
+                //     chunk.get_voxel(x - 1, y, z), // Left voxel
+                //     chunk.get_voxel(x + 1, y, z), // Right voxel
+                //     chunk.get_voxel(x, y, z + 1), // Front voxel
+                //     chunk.get_voxel(x, y, z - 1), // Back voxel
+                // ];
+
+                // let _faces = [
+                //     ((x as i32 - 1, y as i32, z as i32), 0), // left
+                //     ((x as i32 + 1, y as i32, z as i32), 1), // right
+                //     ((x as i32, y as i32 - 1, z as i32), 2), // bottom
+                //     ((x as i32, y as i32 + 1, z as i32), 3), // top
+                //     ((x as i32, y as i32, z as i32 - 1), 4), // back
+                //     ((x as i32, y as i32, z as i32 + 1), 5), // front
+                // ];
+
+                // for (i, neighbour) in neighbours.iter().enumerate() {
+                //     if neighbour.is_none() || neighbour.unwrap().block_type == BlockType::Air {
+                //         let cube_vertices = generate_cube_vertices(voxel_pos);
+                //         let cube_indices = generate_cube_indices(index_offset);
+                //         let cube_normals = generate_cube_normals();
+
+                //         let face_vertices = &cube_vertices[i * 4..(i + 1) * 4];
+                //         vertices.extend(face_vertices);
+
+                //         let face_indices = &cube_indices[i * 6..(i + 1) * 6];
+                //         indices.extend(face_indices);
+
+                //         let face_normals = &cube_normals[i];
+                //         normals.extend([*face_normals; 4]);
+
+                //         let block_colors = &voxel.block_type;
+                //         let face_colors = match block_colors {
+                //             BlockType::Air => [BlockType::Air.color(); 4],
+                //             BlockType::Stone => [BlockType::Stone.color(); 4],
+                //             BlockType::Dirt => [BlockType::Dirt.color(); 4],
+                //             BlockType::Grass => [BlockType::Grass.color(); 4],
+                //             BlockType::Snow => [BlockType::Snow.color(); 4],
+                //             BlockType::Water => [BlockType::Water.color(); 4],
+                //         };
+                //         colors.extend(face_colors);
+
+                //         index_offset += 4;
+                //     }
+                // }
+
                 let cube_vertices = generate_cube_vertices(voxel_pos);
                 vertices.extend(&cube_vertices);
                 indices.extend(generate_cube_indices(index_offset));
@@ -310,4 +361,202 @@ pub fn generate_cube_normals() -> Vec<[f32; 3]> {
         // Back face normals
         [0.0, 0.0, -1.0],
     ]
+}
+
+fn add_top_face(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let cube_vertices = generate_cube_vertices(voxel_pos);
+    let cube_indices = generate_cube_indices(index_offset);
+    let cube_normals = generate_cube_normals();
+
+    let face_vertices = &cube_vertices[0 * 4..(0 + 1) * 4];
+    vertices.extend(face_vertices);
+
+    let face_indices = &cube_indices[0 * 6..(0 + 1) * 6];
+    indices.extend(face_indices);
+
+    let face_normals = &cube_normals[0];
+    normals.extend([*face_normals; 4]);
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
+}
+
+fn add_bottom_face(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let cube_vertices = generate_cube_vertices(voxel_pos);
+    let cube_indices = generate_cube_indices(index_offset);
+    let cube_normals = generate_cube_normals();
+
+    let face_vertices = &cube_vertices[1 * 4..(1 + 1) * 4];
+    vertices.extend(face_vertices);
+
+    let face_indices = &cube_indices[1 * 6..(1 + 1) * 6];
+    indices.extend(face_indices);
+
+    let face_normals = &cube_normals[1];
+    normals.extend([*face_normals; 4]);
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
+}
+
+fn add_left_face(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let cube_vertices = generate_cube_vertices(voxel_pos);
+    let cube_indices = generate_cube_indices(index_offset);
+    let cube_normals = generate_cube_normals();
+
+    let face_vertices = &cube_vertices[2 * 4..(2 + 1) * 4];
+    vertices.extend(face_vertices);
+
+    let face_indices = &cube_indices[2 * 6..(2 + 1) * 6];
+    indices.extend(face_indices);
+
+    let face_normals = &cube_normals[2];
+    normals.extend([*face_normals; 4]);
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
+}
+
+fn add_right_face(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let cube_vertices = generate_cube_vertices(voxel_pos);
+    let cube_indices = generate_cube_indices(index_offset);
+    let cube_normals = generate_cube_normals();
+
+    let face_vertices = &cube_vertices[3 * 4..(3 + 1) * 4];
+    vertices.extend(face_vertices);
+
+    let face_indices = &cube_indices[3 * 6..(3 + 1) * 6];
+    indices.extend(face_indices);
+
+    let face_normals = &cube_normals[3];
+    normals.extend([*face_normals; 4]);
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
+}
+
+fn add_front_face(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let cube_vertices = generate_cube_vertices(voxel_pos);
+    let cube_indices = generate_cube_indices(index_offset);
+    let cube_normals = generate_cube_normals();
+
+    let face_vertices = &cube_vertices[4 * 4..(4 + 1) * 4];
+    vertices.extend(face_vertices);
+
+    let face_indices = &cube_indices[4 * 6..(4 + 1) * 6];
+    indices.extend(face_indices);
+
+    let face_normals = &cube_normals[4];
+    normals.extend([*face_normals; 4]);
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
+}
+
+fn add_back_face(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let cube_vertices = generate_cube_vertices(voxel_pos);
+    let cube_indices = generate_cube_indices(index_offset);
+    let cube_normals = generate_cube_normals();
+
+    let face_vertices = &cube_vertices[5 * 4..(5 + 1) * 4];
+    vertices.extend(face_vertices);
+
+    let face_indices = &cube_indices[5 * 6..(5 + 1) * 6];
+    indices.extend(face_indices);
+
+    let face_normals = &cube_normals[5];
+    normals.extend([*face_normals; 4]);
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
 }
