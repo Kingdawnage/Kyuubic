@@ -2,12 +2,23 @@
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
 use rand::Rng;
+use std::collections::HashSet;
 
 use std::collections::HashMap;
 
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_HEIGHT: i32 = 64;
 pub const SEA_LEVEL: i32 = 20;
+
+trait AsVec3 {
+    fn as_vec3(&self) -> Vec3;
+}
+
+impl AsVec3 for IVec3 {
+    fn as_vec3(&self) -> Vec3 {
+        Vec3::new(self.x as f32, self.y as f32, self.z as f32)
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum BlockType {
