@@ -214,14 +214,23 @@ pub fn generate_mesh(
     if let Some(chunk) = chunk_map.map.get(&chunk_pos) {
         let all_voxels = &chunk.voxels;
 
-        let neighbour_offsets = [
-            Vec3::new(0.0, 1.0, 0.0),  // Top voxel
-            Vec3::new(0.0, -1.0, 0.0), // Bottom voxel
-            Vec3::new(-1.0, 0.0, 0.0), // Left voxel
-            Vec3::new(1.0, 0.0, 0.0),  // Right voxel
-            Vec3::new(0.0, 0.0, 1.0),  // Front voxel
-            Vec3::new(0.0, 0.0, -1.0), // Back voxel
-        ];
+        // let neighbour_offsets = [
+        //     Vec3::new(0.0, 1.0, 0.0),  // Top voxel
+        //     Vec3::new(0.0, -1.0, 0.0), // Bottom voxel
+        //     Vec3::new(-1.0, 0.0, 0.0), // Left voxel
+        //     Vec3::new(1.0, 0.0, 0.0),  // Right voxel
+        //     Vec3::new(0.0, 0.0, 1.0),  // Front voxel
+        //     Vec3::new(0.0, 0.0, -1.0), // Back voxel
+        // ];
+
+        let mut voxel_map: HashMap<(i32, i32, i32), &Voxel> = HashMap::new();
+
+        for voxel in all_voxels {
+            let x = voxel.id % CHUNK_SIZE as i32;
+            let y = (voxel.id / CHUNK_SIZE as i32) % CHUNK_HEIGHT as i32;
+            let z = voxel.id / (CHUNK_SIZE as i32 * CHUNK_HEIGHT as i32);
+            voxel_map.insert((x, y, z), voxel);
+        }
 
         for voxel in all_voxels {
             // if voxel.is_solid {
@@ -231,74 +240,19 @@ pub fn generate_mesh(
 
             let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
 
-            let top_voxel_pos = voxel_pos + neighbour_offsets[0];
-            let bottom_voxel_pos = voxel_pos + neighbour_offsets[1];
-            let left_voxel_pos = voxel_pos + neighbour_offsets[2];
-            let right_voxel_pos = voxel_pos + neighbour_offsets[3];
-            let front_voxel_pos = voxel_pos + neighbour_offsets[4];
-            let back_voxel_pos = voxel_pos + neighbour_offsets[5];
+            // let top_voxel_pos = voxel_pos + neighbour_offsets[0];
+            // let bottom_voxel_pos = voxel_pos + neighbour_offsets[1];
+            // let left_voxel_pos = voxel_pos + neighbour_offsets[2];
+            // let right_voxel_pos = voxel_pos + neighbour_offsets[3];
+            // let front_voxel_pos = voxel_pos + neighbour_offsets[4];
+            // let back_voxel_pos = voxel_pos + neighbour_offsets[5];
 
-            let top_neighbour = all_voxels.iter().find(|v| {
-                let nx = v.id % CHUNK_SIZE;
-                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-                Vec3::new(nx as f32, ny as f32, nz as f32) == top_voxel_pos
-            });
-            let top_exists = top_neighbour.map_or(false, |neighbour| neighbour.is_solid);
-            let top_is_air =
-                top_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
-            let top_is_solid =
-                top_neighbour.map_or(false, |neighbour| neighbour.block_type != BlockType::Air);
-
-            let bottom_neighbour = all_voxels.iter().find(|v| {
-                let nx = v.id % CHUNK_SIZE;
-                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-                Vec3::new(nx as f32, ny as f32, nz as f32) == bottom_voxel_pos
-            });
-            let bottom_exists = bottom_neighbour.map_or(false, |neighbour| neighbour.is_solid);
-            let bottom_is_air =
-                bottom_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
-
-            let left_neighbour = all_voxels.iter().find(|v| {
-                let nx = v.id % CHUNK_SIZE;
-                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-                Vec3::new(nx as f32, ny as f32, nz as f32) == left_voxel_pos
-            });
-            let left_exists = left_neighbour.map_or(false, |neighbour| neighbour.is_solid);
-            let left_is_air =
-                left_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
-
-            let right_neighbour = all_voxels.iter().find(|v| {
-                let nx = v.id % CHUNK_SIZE;
-                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-                Vec3::new(nx as f32, ny as f32, nz as f32) == right_voxel_pos
-            });
-            let right_exists = right_neighbour.map_or(false, |neighbour| neighbour.is_solid);
-            let right_is_air =
-                right_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
-
-            let front_neighbour = all_voxels.iter().find(|v| {
-                let nx = v.id % CHUNK_SIZE;
-                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-                Vec3::new(nx as f32, ny as f32, nz as f32) == front_voxel_pos
-            });
-            let front_exists = front_neighbour.map_or(false, |neighbour| neighbour.is_solid);
-            let front_is_air =
-                front_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
-
-            let back_neighbour = all_voxels.iter().find(|v| {
-                let nx = v.id % CHUNK_SIZE;
-                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-                Vec3::new(nx as f32, ny as f32, nz as f32) == back_voxel_pos
-            });
-            let back_exists = back_neighbour.map_or(false, |neighbour| neighbour.is_solid);
-            let back_is_air =
-                back_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
+            // let top_neighbour = all_voxels.iter().find(|v| {
+            //     let nx = v.id % CHUNK_SIZE;
+            //     let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+            //     let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+            //     Vec3::new(nx as f32, ny as f32, nz as f32) == top_voxel_pos
+            // });
 
             if voxel.is_solid {
                 add_top_face(
