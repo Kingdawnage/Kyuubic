@@ -2,7 +2,6 @@
 use bevy::prelude::*;
 use bracket_noise::prelude::*;
 use rand::Rng;
-use std::collections::HashSet;
 
 use std::collections::HashMap;
 
@@ -213,99 +212,171 @@ pub fn generate_mesh(
     let mut index_offset = 0;
 
     if let Some(chunk) = chunk_map.map.get(&chunk_pos) {
-        for voxel in &chunk.voxels {
+        let all_voxels = &chunk.voxels;
+
+        let neighbour_offsets = [
+            Vec3::new(0.0, 1.0, 0.0),  // Top voxel
+            Vec3::new(0.0, -1.0, 0.0), // Bottom voxel
+            Vec3::new(-1.0, 0.0, 0.0), // Left voxel
+            Vec3::new(1.0, 0.0, 0.0),  // Right voxel
+            Vec3::new(0.0, 0.0, 1.0),  // Front voxel
+            Vec3::new(0.0, 0.0, -1.0), // Back voxel
+        ];
+
+        for voxel in all_voxels {
+            // if voxel.is_solid {
+            let x = voxel.id % CHUNK_SIZE;
+            let y = (voxel.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+            let z = voxel.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+
+            let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
+
+            let top_voxel_pos = voxel_pos + neighbour_offsets[0];
+            let bottom_voxel_pos = voxel_pos + neighbour_offsets[1];
+            let left_voxel_pos = voxel_pos + neighbour_offsets[2];
+            let right_voxel_pos = voxel_pos + neighbour_offsets[3];
+            let front_voxel_pos = voxel_pos + neighbour_offsets[4];
+            let back_voxel_pos = voxel_pos + neighbour_offsets[5];
+
+            let top_neighbour = all_voxels.iter().find(|v| {
+                let nx = v.id % CHUNK_SIZE;
+                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+                Vec3::new(nx as f32, ny as f32, nz as f32) == top_voxel_pos
+            });
+            let top_exists = top_neighbour.map_or(false, |neighbour| neighbour.is_solid);
+            let top_is_air =
+                top_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
+            let top_is_solid =
+                top_neighbour.map_or(false, |neighbour| neighbour.block_type != BlockType::Air);
+
+            let bottom_neighbour = all_voxels.iter().find(|v| {
+                let nx = v.id % CHUNK_SIZE;
+                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+                Vec3::new(nx as f32, ny as f32, nz as f32) == bottom_voxel_pos
+            });
+            let bottom_exists = bottom_neighbour.map_or(false, |neighbour| neighbour.is_solid);
+            let bottom_is_air =
+                bottom_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
+
+            let left_neighbour = all_voxels.iter().find(|v| {
+                let nx = v.id % CHUNK_SIZE;
+                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+                Vec3::new(nx as f32, ny as f32, nz as f32) == left_voxel_pos
+            });
+            let left_exists = left_neighbour.map_or(false, |neighbour| neighbour.is_solid);
+            let left_is_air =
+                left_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
+
+            let right_neighbour = all_voxels.iter().find(|v| {
+                let nx = v.id % CHUNK_SIZE;
+                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+                Vec3::new(nx as f32, ny as f32, nz as f32) == right_voxel_pos
+            });
+            let right_exists = right_neighbour.map_or(false, |neighbour| neighbour.is_solid);
+            let right_is_air =
+                right_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
+
+            let front_neighbour = all_voxels.iter().find(|v| {
+                let nx = v.id % CHUNK_SIZE;
+                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+                Vec3::new(nx as f32, ny as f32, nz as f32) == front_voxel_pos
+            });
+            let front_exists = front_neighbour.map_or(false, |neighbour| neighbour.is_solid);
+            let front_is_air =
+                front_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
+
+            let back_neighbour = all_voxels.iter().find(|v| {
+                let nx = v.id % CHUNK_SIZE;
+                let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+                let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+                Vec3::new(nx as f32, ny as f32, nz as f32) == back_voxel_pos
+            });
+            let back_exists = back_neighbour.map_or(false, |neighbour| neighbour.is_solid);
+            let back_is_air =
+                back_neighbour.map_or(false, |neighbour| neighbour.block_type == BlockType::Air);
+
             if voxel.is_solid {
-                let x = voxel.id % CHUNK_SIZE;
-                let y = (voxel.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-                let z = voxel.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+                add_top_face(
+                    &mut vertices,
+                    &mut indices,
+                    &mut normals,
+                    &mut colors,
+                    voxel_pos,
+                    &voxel.block_type,
+                    index_offset,
+                );
 
-                let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
+                add_bottom_face(
+                    &mut vertices,
+                    &mut indices,
+                    &mut normals,
+                    &mut colors,
+                    voxel_pos,
+                    &voxel.block_type,
+                    index_offset,
+                );
 
-                // // Check each face of the voxel
-                // let neighbours = [
-                //     chunk.get_voxel(x, y + 1, z), // Top voxel
-                //     chunk.get_voxel(x, y - 1, z), // Bottom voxel
-                //     chunk.get_voxel(x - 1, y, z), // Left voxel
-                //     chunk.get_voxel(x + 1, y, z), // Right voxel
-                //     chunk.get_voxel(x, y, z + 1), // Front voxel
-                //     chunk.get_voxel(x, y, z - 1), // Back voxel
-                // ];
+                add_left_face(
+                    &mut vertices,
+                    &mut indices,
+                    &mut normals,
+                    &mut colors,
+                    voxel_pos,
+                    &voxel.block_type,
+                    index_offset,
+                );
 
-                // let _faces = [
-                //     ((x as i32 - 1, y as i32, z as i32), 0), // left
-                //     ((x as i32 + 1, y as i32, z as i32), 1), // right
-                //     ((x as i32, y as i32 - 1, z as i32), 2), // bottom
-                //     ((x as i32, y as i32 + 1, z as i32), 3), // top
-                //     ((x as i32, y as i32, z as i32 - 1), 4), // back
-                //     ((x as i32, y as i32, z as i32 + 1), 5), // front
-                // ];
+                add_right_face(
+                    &mut vertices,
+                    &mut indices,
+                    &mut normals,
+                    &mut colors,
+                    voxel_pos,
+                    &voxel.block_type,
+                    index_offset,
+                );
 
-                // for (i, neighbour) in neighbours.iter().enumerate() {
-                //     if neighbour.is_none() || neighbour.unwrap().block_type == BlockType::Air {
-                //         let cube_vertices = generate_cube_vertices(voxel_pos);
-                //         let cube_indices = generate_cube_indices(index_offset);
-                //         let cube_normals = generate_cube_normals();
+                add_front_face(
+                    &mut vertices,
+                    &mut indices,
+                    &mut normals,
+                    &mut colors,
+                    voxel_pos,
+                    &voxel.block_type,
+                    index_offset,
+                );
 
-                //         let face_vertices = &cube_vertices[i * 4..(i + 1) * 4];
-                //         vertices.extend(face_vertices);
-
-                //         let face_indices = &cube_indices[i * 6..(i + 1) * 6];
-                //         indices.extend(face_indices);
-
-                //         let face_normals = &cube_normals[i];
-                //         normals.extend([*face_normals; 4]);
-
-                //         let block_colors = &voxel.block_type;
-                //         let face_colors = match block_colors {
-                //             BlockType::Air => [BlockType::Air.color(); 4],
-                //             BlockType::Stone => [BlockType::Stone.color(); 4],
-                //             BlockType::Dirt => [BlockType::Dirt.color(); 4],
-                //             BlockType::Grass => [BlockType::Grass.color(); 4],
-                //             BlockType::Snow => [BlockType::Snow.color(); 4],
-                //             BlockType::Water => [BlockType::Water.color(); 4],
-                //         };
-                //         colors.extend(face_colors);
-
-                //         index_offset += 4;
-                //     }
-                // }
-
-                let cube_vertices = generate_cube_vertices(voxel_pos);
-                vertices.extend(&cube_vertices);
-                indices.extend(generate_cube_indices(index_offset));
-
-                let cube_normals = generate_cube_normals();
-                for normal in cube_normals.iter() {
-                    normals.extend([*normal; 4]);
-                }
-                let block_colors = &voxel.block_type;
-                match block_colors {
-                    BlockType::Air => {
-                        colors.extend([BlockType::Air.color(); 24]);
-                    }
-                    BlockType::Stone => {
-                        colors.extend([BlockType::Stone.color(); 24]);
-                    }
-                    BlockType::Dirt => {
-                        colors.extend([BlockType::Dirt.color(); 24]);
-                    }
-                    BlockType::Grass => {
-                        colors.extend([BlockType::Grass.color(); 24]);
-                    }
-                    BlockType::Snow => {
-                        colors.extend([BlockType::Snow.color(); 24]);
-                    }
-                    BlockType::Water => {
-                        colors.extend([BlockType::Water.color(); 24]);
-                    }
-                }
-                // normals.extend(generate_cube_normals());
-                //colors.extend([[0.0, 1.0, 0.0, 1.0]; 24]);
-
+                add_back_face(
+                    &mut vertices,
+                    &mut indices,
+                    &mut normals,
+                    &mut colors,
+                    voxel_pos,
+                    &voxel.block_type,
+                    index_offset,
+                );
                 index_offset += 24;
             }
+            // if voxel.is_solid {
+            //     add_voxel_cube(
+            //         &mut vertices,
+            //         &mut indices,
+            //         &mut normals,
+            //         &mut colors,
+            //         voxel_pos,
+            //         &voxel.block_type,
+            //         index_offset,
+            //     );
+            //     index_offset += 24;
+            // }
         }
     }
+    // }
 
     return (vertices, indices, normals, colors);
 }
@@ -396,6 +467,8 @@ fn add_top_face(
     let face_normals = &cube_normals[0];
     normals.extend([*face_normals; 4]);
 
+    let _test_color: [[f32; 4]; 4] = [[1.0, 0.0, 0.0, 1.0]; 4];
+
     let face_colors = match block_type {
         BlockType::Air => [BlockType::Air.color(); 4],
         BlockType::Stone => [BlockType::Stone.color(); 4],
@@ -428,6 +501,8 @@ fn add_bottom_face(
 
     let face_normals = &cube_normals[1];
     normals.extend([*face_normals; 4]);
+
+    let _test_color: [[f32; 4]; 4] = [[1.0, 1.0, 0.0, 1.0]; 4];
 
     let face_colors = match block_type {
         BlockType::Air => [BlockType::Air.color(); 4],
@@ -462,6 +537,8 @@ fn add_left_face(
     let face_normals = &cube_normals[2];
     normals.extend([*face_normals; 4]);
 
+    let _test_color: [[f32; 4]; 4] = [[0.0, 1.0, 0.0, 1.0]; 4];
+
     let face_colors = match block_type {
         BlockType::Air => [BlockType::Air.color(); 4],
         BlockType::Stone => [BlockType::Stone.color(); 4],
@@ -494,6 +571,8 @@ fn add_right_face(
 
     let face_normals = &cube_normals[3];
     normals.extend([*face_normals; 4]);
+
+    let _test_color: [[f32; 4]; 4] = [[0.0, 0.0, 1.0, 1.0]; 4];
 
     let face_colors = match block_type {
         BlockType::Air => [BlockType::Air.color(); 4],
@@ -528,6 +607,8 @@ fn add_front_face(
     let face_normals = &cube_normals[4];
     normals.extend([*face_normals; 4]);
 
+    let _test_color: [[f32; 4]; 4] = [[1.0, 1.0, 1.0, 1.0]; 4];
+
     let face_colors = match block_type {
         BlockType::Air => [BlockType::Air.color(); 4],
         BlockType::Stone => [BlockType::Stone.color(); 4],
@@ -561,6 +642,8 @@ fn add_back_face(
     let face_normals = &cube_normals[5];
     normals.extend([*face_normals; 4]);
 
+    let _test_color: [[f32; 4]; 4] = [[0.0, 0.0, 0.0, 1.0]; 4];
+
     let face_colors = match block_type {
         BlockType::Air => [BlockType::Air.color(); 4],
         BlockType::Stone => [BlockType::Stone.color(); 4],
@@ -569,5 +652,37 @@ fn add_back_face(
         BlockType::Snow => [BlockType::Snow.color(); 4],
         BlockType::Water => [BlockType::Water.color(); 4],
     };
+    colors.extend(face_colors);
+}
+
+fn add_voxel_cube(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let cube_vertices = generate_cube_vertices(voxel_pos);
+    let cube_indices = generate_cube_indices(index_offset);
+    let cube_normals = generate_cube_normals();
+
+    vertices.extend(cube_vertices);
+    indices.extend(cube_indices);
+    for normal in &cube_normals {
+        normals.extend([*normal; 4]);
+    }
+    // normals.extend(cube_normals);
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 24],
+        BlockType::Stone => [BlockType::Stone.color(); 24],
+        BlockType::Dirt => [BlockType::Dirt.color(); 24],
+        BlockType::Grass => [BlockType::Grass.color(); 24],
+        BlockType::Snow => [BlockType::Snow.color(); 24],
+        BlockType::Water => [BlockType::Water.color(); 24],
+    };
+
     colors.extend(face_colors);
 }
