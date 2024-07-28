@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bracket_noise::prelude::*;
 use rand::Rng;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, io::Write};
 
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_HEIGHT: i32 = 64;
@@ -203,7 +203,8 @@ impl ChunkMap {
 
 pub fn generate_mesh(
     chunk_map: &ChunkMap,
-    chunk_pos: IVec3,
+    // chunk_pos: IVec3,
+    // voxel_map: &HashMap<(i32, i32, i32), &Voxel>,
 ) -> (Vec<[f32; 3]>, Vec<u32>, Vec<[f32; 3]>, Vec<[f32; 4]>) {
     let mut vertices: Vec<[f32; 3]> = Vec::new();
     let mut indices = Vec::new();
@@ -211,125 +212,153 @@ pub fn generate_mesh(
     let mut colors = Vec::new();
     let mut index_offset = 0;
 
-    if let Some(chunk) = chunk_map.map.get(&chunk_pos) {
-        let all_voxels = &chunk.voxels;
+    // collect_voxel_data(chunk_map, chunk_pos);
 
-        // let neighbour_offsets = [
-        //     Vec3::new(0.0, 1.0, 0.0),  // Top voxel
-        //     Vec3::new(0.0, -1.0, 0.0), // Bottom voxel
-        //     Vec3::new(-1.0, 0.0, 0.0), // Left voxel
-        //     Vec3::new(1.0, 0.0, 0.0),  // Right voxel
-        //     Vec3::new(0.0, 0.0, 1.0),  // Front voxel
-        //     Vec3::new(0.0, 0.0, -1.0), // Back voxel
-        // ];
+    let terrain_voxels = gather_voxels(chunk_map);
 
-        let mut voxel_map: HashMap<(i32, i32, i32), &Voxel> = HashMap::new();
+    for ((x, y, z), voxel) in terrain_voxels {
+        let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
 
-        for voxel in all_voxels {
-            let x = voxel.id % CHUNK_SIZE as i32;
-            let y = (voxel.id / CHUNK_SIZE as i32) % CHUNK_HEIGHT as i32;
-            let z = voxel.id / (CHUNK_SIZE as i32 * CHUNK_HEIGHT as i32);
-            voxel_map.insert((x, y, z), voxel);
-        }
-
-        for voxel in all_voxels {
-            // if voxel.is_solid {
-            let x = voxel.id % CHUNK_SIZE;
-            let y = (voxel.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-            let z = voxel.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-
-            let voxel_pos = Vec3::new(x as f32, y as f32, z as f32);
-
-            // let top_voxel_pos = voxel_pos + neighbour_offsets[0];
-            // let bottom_voxel_pos = voxel_pos + neighbour_offsets[1];
-            // let left_voxel_pos = voxel_pos + neighbour_offsets[2];
-            // let right_voxel_pos = voxel_pos + neighbour_offsets[3];
-            // let front_voxel_pos = voxel_pos + neighbour_offsets[4];
-            // let back_voxel_pos = voxel_pos + neighbour_offsets[5];
-
-            // let top_neighbour = all_voxels.iter().find(|v| {
-            //     let nx = v.id % CHUNK_SIZE;
-            //     let ny = (v.id / CHUNK_SIZE) % CHUNK_HEIGHT;
-            //     let nz = v.id / (CHUNK_SIZE * CHUNK_HEIGHT);
-            //     Vec3::new(nx as f32, ny as f32, nz as f32) == top_voxel_pos
-            // });
-
-            if voxel.is_solid {
-                add_top_face(
-                    &mut vertices,
-                    &mut indices,
-                    &mut normals,
-                    &mut colors,
-                    voxel_pos,
-                    &voxel.block_type,
-                    index_offset,
-                );
-
-                add_bottom_face(
-                    &mut vertices,
-                    &mut indices,
-                    &mut normals,
-                    &mut colors,
-                    voxel_pos,
-                    &voxel.block_type,
-                    index_offset,
-                );
-
-                add_left_face(
-                    &mut vertices,
-                    &mut indices,
-                    &mut normals,
-                    &mut colors,
-                    voxel_pos,
-                    &voxel.block_type,
-                    index_offset,
-                );
-
-                add_right_face(
-                    &mut vertices,
-                    &mut indices,
-                    &mut normals,
-                    &mut colors,
-                    voxel_pos,
-                    &voxel.block_type,
-                    index_offset,
-                );
-
-                add_front_face(
-                    &mut vertices,
-                    &mut indices,
-                    &mut normals,
-                    &mut colors,
-                    voxel_pos,
-                    &voxel.block_type,
-                    index_offset,
-                );
-
-                add_back_face(
-                    &mut vertices,
-                    &mut indices,
-                    &mut normals,
-                    &mut colors,
-                    voxel_pos,
-                    &voxel.block_type,
-                    index_offset,
-                );
-                index_offset += 24;
-            }
-            // if voxel.is_solid {
-            //     add_voxel_cube(
-            //         &mut vertices,
-            //         &mut indices,
-            //         &mut normals,
-            //         &mut colors,
-            //         voxel_pos,
-            //         &voxel.block_type,
-            //         index_offset,
-            //     );
-            //     index_offset += 24;
-            // }
+        if voxel.is_solid {
+            add_voxel_cube(
+                &mut vertices,
+                &mut indices,
+                &mut normals,
+                &mut colors,
+                voxel_pos,
+                &voxel.block_type,
+                index_offset,
+            );
+            index_offset += 24;
         }
     }
+
+    // if let Some(chunk) = chunk_map.map.get(&chunk_pos) {
+    //     let all_voxels = &chunk.voxels;
+
+    //     for voxel in all_voxels {
+    //         // if voxel.is_solid {
+    //         let x = voxel.id % CHUNK_SIZE;
+    //         let y = (voxel.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+    //         let z = voxel.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+
+    //         let voxel_pos = Vec3::new(
+    //             (chunk_pos.x * CHUNK_SIZE + x) as f32,
+    //             (chunk_pos.y * CHUNK_HEIGHT + y) as f32,
+    //             (chunk_pos.z * CHUNK_SIZE + z) as f32,
+    //         );
+
+    //         if voxel.is_solid {
+    //             // Check top neighbor
+    //             // if !voxel_map.get(&(x, y + 1, z)).map_or(false, |v| v.is_solid)
+    //             {
+    //                 add_top_face(
+    //                     &mut vertices,
+    //                     &mut indices,
+    //                     &mut normals,
+    //                     &mut colors,
+    //                     voxel_pos,
+    //                     &voxel.block_type,
+    //                     index_offset,
+    //                 );
+    //             }
+
+    //             // Check bottom neighbor
+    //             if voxel_map
+    //                 .get(&(x, y - 1, z))
+    //                 .map_or(true, |v| !v.is_solid && v.block_type == BlockType::Air)
+    //             {
+    //                 add_bottom_face(
+    //                     &mut vertices,
+    //                     &mut indices,
+    //                     &mut normals,
+    //                     &mut colors,
+    //                     voxel_pos,
+    //                     &voxel.block_type,
+    //                     index_offset,
+    //                 );
+    //             }
+
+    //             // Check left neighbor
+    //             if voxel_map
+    //                 .get(&(x - 1, y, z))
+    //                 .map_or(true, |v| !v.is_solid && v.block_type == BlockType::Air)
+    //             {
+    //                 add_left_face(
+    //                     &mut vertices,
+    //                     &mut indices,
+    //                     &mut normals,
+    //                     &mut colors,
+    //                     voxel_pos,
+    //                     &voxel.block_type,
+    //                     index_offset,
+    //                 );
+    //             }
+
+    //             // Check right neighbor
+    //             if voxel_map
+    //                 .get(&(x + 1, y, z))
+    //                 .map_or(true, |v| !v.is_solid && v.block_type == BlockType::Air)
+    //             {
+    //                 add_right_face(
+    //                     &mut vertices,
+    //                     &mut indices,
+    //                     &mut normals,
+    //                     &mut colors,
+    //                     voxel_pos,
+    //                     &voxel.block_type,
+    //                     index_offset,
+    //                 );
+    //             }
+
+    //             // Check front neighbor
+    //             if voxel_map
+    //                 .get(&(x, y, z + 1))
+    //                 .map_or(true, |v| !v.is_solid && v.block_type == BlockType::Air)
+    //             {
+    //                 add_front_face(
+    //                     &mut vertices,
+    //                     &mut indices,
+    //                     &mut normals,
+    //                     &mut colors,
+    //                     voxel_pos,
+    //                     &voxel.block_type,
+    //                     index_offset,
+    //                 );
+    //             }
+
+    //             // Check back neighbor
+    //             if voxel_map
+    //                 .get(&(x, y, z - 1))
+    //                 .map_or(true, |v| !v.is_solid && v.block_type == BlockType::Air)
+    //             {
+    //                 add_back_face(
+    //                     &mut vertices,
+    //                     &mut indices,
+    //                     &mut normals,
+    //                     &mut colors,
+    //                     voxel_pos,
+    //                     &voxel.block_type,
+    //                     index_offset,
+    //                 );
+    //             }
+
+    //             index_offset += 24;
+    //         }
+    //         // if voxel.is_solid {
+    //         //     add_voxel_cube(
+    //         //         &mut vertices,
+    //         //         &mut indices,
+    //         //         &mut normals,
+    //         //         &mut colors,
+    //         //         voxel_pos,
+    //         //         &voxel.block_type,
+    //         //         index_offset,
+    //         //     );
+    //         //     index_offset += 24;
+    //         // }
+    //     }
+    // }
     // }
 
     return (vertices, indices, normals, colors);
@@ -639,4 +668,33 @@ fn add_voxel_cube(
     };
 
     colors.extend(face_colors);
+}
+
+pub fn collect_terrain_data(chunk_map: &ChunkMap) {
+    let terrain_map = gather_voxels(chunk_map);
+    // Write terrain data to a file
+    let mut file = File::create("terrain_map.txt").expect("Unable to create file");
+    for ((x, y, z), voxel) in &terrain_map {
+        writeln!(file, "{},{},{},{}", x, y, z, voxel.is_solid).expect("Unable to write data");
+    }
+}
+
+pub fn gather_voxels(chunk_map: &ChunkMap) -> HashMap<(i32, i32, i32), &Voxel> {
+    let mut voxel_map: HashMap<(i32, i32, i32), &Voxel> = HashMap::new();
+
+    for (chunk_pos, chunk) in &chunk_map.map {
+        for voxel in &chunk.voxels {
+            let x = voxel.id % CHUNK_SIZE;
+            let y = (voxel.id / CHUNK_SIZE) % CHUNK_HEIGHT;
+            let z = voxel.id / (CHUNK_SIZE * CHUNK_HEIGHT);
+            let world_pos = (
+                chunk_pos.x * CHUNK_SIZE + x,
+                chunk_pos.y * CHUNK_HEIGHT + y,
+                chunk_pos.z * CHUNK_SIZE + z,
+            );
+            voxel_map.insert(world_pos, voxel);
+        }
+    }
+
+    voxel_map
 }
