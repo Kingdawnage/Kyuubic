@@ -8,6 +8,81 @@ use std::{collections::HashMap, fs::File, io::Write};
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_HEIGHT: i32 = 64;
 pub const SEA_LEVEL: i32 = 20;
+const MAX_INDEX_OFFSET: u32 = std::u32::MAX / 4;
+
+#[derive(Debug)]
+pub struct Mesh {
+    pub vertices: Vec<[f32; 3]>,
+    pub indices: Vec<u32>,
+    pub normals: Vec<[f32; 3]>,
+    pub colors: Vec<[f32; 4]>,
+}
+
+impl Mesh {
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
+            indices: Vec::new(),
+            normals: Vec::new(),
+            colors: Vec::new(),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.vertices.clear();
+        self.indices.clear();
+        self.normals.clear();
+        self.colors.clear();
+    }
+
+    pub fn insert_attribute(&mut self, attribute: &str, data: Vec<[f32; 3]>) {
+        match attribute {
+            "position" => self.vertices = data,
+            "normal" => self.normals = data,
+            _ => panic!("Invalid attribute name: {}", attribute),
+        }
+    }
+
+    pub fn insert_indices(&mut self, data: Vec<u32>) {
+        self.indices = data;
+    }
+
+    pub fn insert_colors(&mut self, data: Vec<[f32; 4]>) {
+        self.colors = data;
+    }
+}
+
+pub struct MeshCollection {
+    pub vertices: Vec<[f32; 3]>,
+    pub indices: Vec<u32>,
+    pub normals: Vec<[f32; 3]>,
+    pub colors: Vec<[f32; 4]>,
+}
+
+impl MeshCollection {
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
+            indices: Vec::new(),
+            normals: Vec::new(),
+            colors: Vec::new(),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.vertices.clear();
+        self.indices.clear();
+        self.normals.clear();
+        self.colors.clear();
+    }
+
+    pub fn insert_mesh(&mut self, mesh: &Mesh) {
+        self.vertices.extend(&mesh.vertices);
+        self.indices.extend(&mesh.indices);
+        self.normals.extend(&mesh.normals);
+        self.colors.extend(&mesh.colors);
+    }
+}
 
 trait AsVec3 {
     fn as_vec3(&self) -> Vec3;
@@ -697,4 +772,200 @@ pub fn gather_voxels(chunk_map: &ChunkMap) -> HashMap<(i32, i32, i32), &Voxel> {
     }
 
     voxel_map
+}
+
+pub fn test_mesh() -> (Vec<[f32; 3]>, Vec<u32>, Vec<[f32; 3]>, Vec<[f32; 4]>) {
+    let mut map: HashMap<IVec3, &Voxel> = HashMap::new();
+
+    let voxel = Voxel {
+        id: 0,
+        is_solid: true,
+        block_type: BlockType::Grass,
+    };
+
+    let voxel_positions = vec![
+        IVec3::new(0, 0, 0),
+        IVec3::new(1, 0, 0),
+        IVec3::new(2, 0, 0),
+        IVec3::new(0, 1, 0),
+        IVec3::new(1, 1, 0),
+        IVec3::new(2, 1, 0),
+        IVec3::new(0, 2, 0),
+        IVec3::new(1, 2, 0),
+        IVec3::new(2, 2, 0), //
+        IVec3::new(0, 0, 1),
+        IVec3::new(1, 0, 1),
+        IVec3::new(2, 0, 1),
+        IVec3::new(0, 1, 1),
+        IVec3::new(1, 1, 1),
+        IVec3::new(2, 1, 1),
+        IVec3::new(0, 2, 1),
+        IVec3::new(1, 2, 1),
+        IVec3::new(2, 2, 1), //
+        IVec3::new(0, 0, 2),
+        IVec3::new(1, 0, 2),
+        IVec3::new(2, 0, 2),
+        IVec3::new(0, 1, 2),
+        IVec3::new(1, 1, 2),
+        IVec3::new(2, 1, 2),
+        IVec3::new(0, 2, 2),
+        IVec3::new(1, 2, 2),
+        IVec3::new(2, 2, 2),
+    ];
+    for voxel_pos in voxel_positions {
+        map.insert(voxel_pos, &voxel);
+    }
+
+    let mut vertices: Vec<[f32; 3]> = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
+    let mut normals: Vec<[f32; 3]> = Vec::new();
+    let mut colors: Vec<[f32; 4]> = Vec::new();
+    let mut index_offset: u32 = 0;
+
+    for (voxel_pos, voxel) in &map {
+        let voxel_pos = voxel_pos.as_vec3();
+        {
+            add_top(
+                &mut vertices,
+                &mut indices,
+                &mut normals,
+                &mut colors,
+                voxel_pos,
+                &voxel.block_type,
+                index_offset,
+            );
+        }
+        index_offset += 4;
+    }
+
+    return (vertices, indices, normals, colors);
+}
+
+fn add_top(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let x = voxel_pos.x;
+    let y = voxel_pos.y;
+    let z = voxel_pos.z;
+
+    let face_vertices = vec![
+        [x + 0.0, y + 1.0, z + 1.0], // 0
+        [x + 0.0, y + 1.0, z + 0.0], // 1 // Top face
+        [x + 1.0, y + 1.0, z + 0.0], // 2
+        [x + 1.0, y + 1.0, z + 1.0], // 3
+    ];
+    vertices.extend(face_vertices);
+
+    let face_indices: Vec<u32> = vec![0, 1, 2, 2, 3, 0]
+        .into_iter()
+        .map(|i| i + index_offset)
+        .collect();
+    indices.extend(face_indices);
+
+    let face_normals = vec![[0.0, 1.0, 0.0]; 4];
+    normals.extend(&face_normals);
+
+    let _test_color: [[f32; 4]; 4] = [[1.0, 0.0, 0.0, 1.0]; 4];
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
+}
+
+fn add_bottom(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let x = voxel_pos.x;
+    let y = voxel_pos.y;
+    let z = voxel_pos.z;
+
+    let face_vertices = vec![
+        [x + 1.0, y + 0.0, z + 1.0], // 4
+        [x + 0.0, y + 0.0, z + 1.0], // 5 // Bottom face
+        [x + 0.0, y + 0.0, z + 0.0], // 6
+        [x + 1.0, y + 0.0, z + 0.0], // 7
+    ];
+    vertices.extend(face_vertices);
+
+    let face_indices: Vec<u32> = vec![4, 5, 6, 6, 7, 4]
+        .into_iter()
+        .map(|i| i + index_offset)
+        .collect();
+    indices.extend(face_indices);
+
+    let face_normals = vec![[0.0, -1.0, 0.0]; 4];
+    normals.extend(&face_normals);
+
+    let _test_color: [[f32; 4]; 4] = [[1.0, 0.0, 0.0, 1.0]; 4];
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
+}
+
+fn add_left(
+    vertices: &mut Vec<[f32; 3]>,
+    indices: &mut Vec<u32>,
+    normals: &mut Vec<[f32; 3]>,
+    colors: &mut Vec<[f32; 4]>,
+    voxel_pos: Vec3,
+    block_type: &BlockType,
+    index_offset: u32,
+) {
+    let x = voxel_pos.x;
+    let y = voxel_pos.y;
+    let z = voxel_pos.z;
+
+    let face_vertices = vec![
+        [x + 0.0, y + 0.0, z + 1.0], // 8
+        [x + 0.0, y + 1.0, z + 1.0], // 9 // Left face
+        [x + 0.0, y + 1.0, z + 0.0], // 10
+        [x + 0.0, y + 0.0, z + 0.0], // 11
+    ];
+    vertices.extend(face_vertices);
+
+    let face_indices: Vec<u32> = vec![8, 9, 10, 10, 11, 8]
+        .into_iter()
+        .map(|i| i + index_offset)
+        .collect();
+    indices.extend(face_indices);
+
+    let face_normals = vec![[-1.0, 0.0, 0.0]; 4];
+    normals.extend(&face_normals);
+
+    let _test_color: [[f32; 4]; 4] = [[1.0, 0.0, 0.0, 1.0]; 4];
+
+    let face_colors = match block_type {
+        BlockType::Air => [BlockType::Air.color(); 4],
+        BlockType::Stone => [BlockType::Stone.color(); 4],
+        BlockType::Dirt => [BlockType::Dirt.color(); 4],
+        BlockType::Grass => [BlockType::Grass.color(); 4],
+        BlockType::Snow => [BlockType::Snow.color(); 4],
+        BlockType::Water => [BlockType::Water.color(); 4],
+    };
+    colors.extend(face_colors);
 }
