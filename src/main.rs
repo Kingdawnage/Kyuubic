@@ -67,11 +67,10 @@ fn setup(
     });
 
     // Generate terrain with heightmap
-    let world_size = IVec3::new(3, 1, 3);
+    let world_size = IVec3::new(10, 2, 10);
     chunk_map.generate_terrain(world_size);
 
     let (vertices, indices, normals, colors) = mesh::generate_mesh(&chunk_map);
-
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
