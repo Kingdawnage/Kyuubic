@@ -35,47 +35,6 @@ impl Mesh {
         self.colors.clear();
     }
 
-    pub fn insert_attribute(&mut self, attribute: &str, data: Vec<[f32; 3]>) {
-        match attribute {
-            "position" => self.vertices = data,
-            "normal" => self.normals = data,
-            _ => panic!("Invalid attribute name: {}", attribute),
-        }
-    }
-
-    pub fn insert_indices(&mut self, data: Vec<u32>) {
-        self.indices = data;
-    }
-
-    pub fn insert_colors(&mut self, data: Vec<[f32; 4]>) {
-        self.colors = data;
-    }
-}
-
-pub struct MeshCollection {
-    pub vertices: Vec<[f32; 3]>,
-    pub indices: Vec<u32>,
-    pub normals: Vec<[f32; 3]>,
-    pub colors: Vec<[f32; 4]>,
-}
-
-impl MeshCollection {
-    pub fn new() -> Self {
-        Self {
-            vertices: Vec::new(),
-            indices: Vec::new(),
-            normals: Vec::new(),
-            colors: Vec::new(),
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.vertices.clear();
-        self.indices.clear();
-        self.normals.clear();
-        self.colors.clear();
-    }
-
     pub fn insert_mesh(&mut self, mesh: &Mesh) {
         self.vertices.extend(&mesh.vertices);
         self.indices.extend(&mesh.indices);
