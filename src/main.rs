@@ -8,7 +8,9 @@ use bevy::{
         render_asset::RenderAssetUsages,
     },
 };
+use mesh::MeshData;
 
+mod block;
 mod camera;
 mod mesh;
 mod utils;
@@ -21,7 +23,7 @@ fn main() {
         .insert_resource(camera::FlyCamera::default())
         .add_systems(Startup, (setup, utils::setup_fps_counter))
         .add_systems(Update, (utils::update_fps, utils::toggle_wireframe_system))
-        .insert_resource(mesh::ChunkMap::new())
+        .insert_resource(block::ChunkMap::new())
         .insert_resource(WireframeConfig {
             global: false,
             default_color: Color::WHITE,
@@ -43,7 +45,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut chunk_map: ResMut<mesh::ChunkMap>,
+    mut chunk_map: ResMut<block::ChunkMap>,
 ) {
     // Spawn 3D camera
     commands.spawn((
@@ -67,19 +69,27 @@ fn setup(
     });
 
     // Generate terrain with heightmap
-    let world_size = IVec3::new(10, 2, 10);
+    let world_size = IVec3::new(5, 1, 5);
     chunk_map.generate_terrain(world_size);
 
-    let (vertices, indices, normals, colors) = mesh::generate_mesh(&chunk_map);
-    let mut mesh = Mesh::new(
+    // let (vertices, indices, normals, colors) = block::generate_mesh(&chunk_map);
+
+    let MeshData {
+        vertices,
+        indices,
+        normals,
+        colors,
+    } = mesh::generate_mesh(&chunk_map);
+
+    let mut meshs = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
     );
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-    mesh.insert_indices(Indices::U32(indices));
-    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    let mesh_handle = meshes.add(mesh);
+    meshs.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+    meshs.insert_indices(Indices::U32(indices));
+    meshs.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    meshs.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    let mesh_handle = meshes.add(meshs);
 
     commands.spawn(PbrBundle {
         mesh: mesh_handle,
