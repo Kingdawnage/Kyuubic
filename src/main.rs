@@ -95,6 +95,7 @@ fn setup(
         mesh: mesh_handle,
         material: materials.add(StandardMaterial {
             //base_color: Color::srgb(0.8, 0.0, 0.0),
+            alpha_mode: AlphaMode::AlphaToCoverage,
             cull_mode: None,
             ..Default::default()
         }),

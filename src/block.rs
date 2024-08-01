@@ -8,7 +8,7 @@ use std::{collections::HashMap, fs::File, io::Write};
 
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_HEIGHT: i32 = 64;
-pub const SEA_LEVEL: i32 = 20;
+pub const SEA_LEVEL: i32 = 30;
 
 #[derive(Debug)]
 pub struct WorldMap {
@@ -43,39 +43,6 @@ impl WorldMap {
     }
 }
 
-#[derive(Debug)]
-pub struct Mesh {
-    pub vertices: Vec<[f32; 3]>,
-    pub indices: Vec<u32>,
-    pub normals: Vec<[f32; 3]>,
-    pub colors: Vec<[f32; 4]>,
-}
-
-impl Mesh {
-    pub fn new() -> Self {
-        Self {
-            vertices: Vec::new(),
-            indices: Vec::new(),
-            normals: Vec::new(),
-            colors: Vec::new(),
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.vertices.clear();
-        self.indices.clear();
-        self.normals.clear();
-        self.colors.clear();
-    }
-
-    pub fn insert_mesh(&mut self, mesh: &Mesh) {
-        self.vertices.extend(&mesh.vertices);
-        self.indices.extend(&mesh.indices);
-        self.normals.extend(&mesh.normals);
-        self.colors.extend(&mesh.colors);
-    }
-}
-
 trait AsVec3 {
     fn as_vec3(&self) -> Vec3;
 }
@@ -104,7 +71,7 @@ impl BlockType {
             BlockType::Dirt => [0.5, 0.25, 0.0, 1.0],
             BlockType::Grass => [0.0, 0.5, 0.0, 1.0],
             BlockType::Snow => [1.0, 1.0, 1.0, 1.0],
-            BlockType::Water => [0.0, 0.0, 1.0, 0.1],
+            BlockType::Water => [0.0, 0.0, 1.0, 0.5],
         }
     }
 }
@@ -263,7 +230,7 @@ impl ChunkMap {
         }
 
         println!("Solid Voxels: {}", solid_voxels);
-        collect_terrain_data(self);
+        // collect_terrain_data(self);
     }
 }
 

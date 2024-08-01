@@ -51,6 +51,9 @@ pub fn generate_mesh(chunk_map: &block::ChunkMap) -> MeshData {
             if !terrain_voxels
                 .get(&(*x, y + 1, *z))
                 .map_or(false, |v| v.is_solid)
+                || terrain_voxels
+                    .get(&(*x, y + 1, *z))
+                    .map_or(false, |v| v.block_type == BlockType::Water)
             {
                 add_top(&mut mesh, voxel_pos, &voxel.block_type, index_offset);
                 index_offset += 4;
@@ -59,6 +62,9 @@ pub fn generate_mesh(chunk_map: &block::ChunkMap) -> MeshData {
             if !terrain_voxels
                 .get(&(*x, y - 1, *z))
                 .map_or(false, |v| v.is_solid)
+                || terrain_voxels
+                    .get(&(*x, y - 1, *z))
+                    .map_or(false, |v| v.block_type == BlockType::Water)
             {
                 add_bottom(&mut mesh, voxel_pos, &voxel.block_type, index_offset);
                 index_offset += 4;
@@ -67,6 +73,9 @@ pub fn generate_mesh(chunk_map: &block::ChunkMap) -> MeshData {
             if !terrain_voxels
                 .get(&(*x - 1, *y, *z))
                 .map_or(false, |v| v.is_solid)
+                || terrain_voxels
+                    .get(&(*x - 1, *y, *z))
+                    .map_or(false, |v| v.block_type == BlockType::Water)
             {
                 add_left(&mut mesh, voxel_pos, &voxel.block_type, index_offset);
                 index_offset += 4;
@@ -75,6 +84,9 @@ pub fn generate_mesh(chunk_map: &block::ChunkMap) -> MeshData {
             if !terrain_voxels
                 .get(&(*x + 1, *y, *z))
                 .map_or(false, |v| v.is_solid)
+                || terrain_voxels
+                    .get(&(*x + 1, *y, *z))
+                    .map_or(false, |v| v.block_type == BlockType::Water)
             {
                 add_right(&mut mesh, voxel_pos, &voxel.block_type, index_offset);
                 index_offset += 4;
@@ -83,6 +95,9 @@ pub fn generate_mesh(chunk_map: &block::ChunkMap) -> MeshData {
             if !terrain_voxels
                 .get(&(*x, *y, z + 1))
                 .map_or(false, |v| v.is_solid)
+                || terrain_voxels
+                    .get(&(*x, *y, *z + 1))
+                    .map_or(false, |v| v.block_type == BlockType::Water)
             {
                 add_front(&mut mesh, voxel_pos, &voxel.block_type, index_offset);
                 index_offset += 4;
@@ -91,6 +106,9 @@ pub fn generate_mesh(chunk_map: &block::ChunkMap) -> MeshData {
             if !terrain_voxels
                 .get(&(*x, *y, z - 1))
                 .map_or(false, |v| v.is_solid)
+                || terrain_voxels
+                    .get(&(*x, *y, *z - 1))
+                    .map_or(false, |v| v.block_type == BlockType::Water)
             {
                 add_back(&mut mesh, voxel_pos, &voxel.block_type, index_offset);
                 index_offset += 4;
